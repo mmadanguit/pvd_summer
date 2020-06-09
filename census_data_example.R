@@ -18,7 +18,7 @@ ri_pop <- get_acs(geography = "tract",
 # reshape and select within city boundaries
 ri_pop = ri_pop %>% select(c('GEOID','NAME','variable','estimate')) %>%
   spread(key='variable',value='estimate')
-ri_pop = ri_pop[ri_pop$GEOID < '44007003700',]
+ri_pop = ri_pop[ri_pop$GEOID < 44007010000,]
 
 write.csv(ri_pop,file='ri_data.csv')
 
