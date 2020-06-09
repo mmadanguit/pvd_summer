@@ -1,6 +1,6 @@
 library(tidyverse)
 library(tidycensus)
-census_api_key("03bb123468322b2ab83d39c381c860d859ad5bab",install = TRUE)
+census_api_key("<API KEY HERE>",install = TRUE)
 library(dplyr)
 library(ggplot2)
 ri_pop <- get_acs(geography = "tract",
