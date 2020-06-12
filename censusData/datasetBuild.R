@@ -93,7 +93,6 @@ riPop = riPop %>% group(c('intSubs', 'internetAccess'), 'InternetAccess') %>%
   group(c('inc14', 'inc15'), 'inc7') %>%# > 150k
   group(c('college', 'grad'), 'college')
   
-
 # FIND PERCENTS
 totPop = c('Male', 'Female', 'White', 'Black', 'Other', 'Hispanic',
            'Citizen', 'NotCitizen')
@@ -108,3 +107,5 @@ riPop = riPop %>% percent(totPop, 'Pop') %>%
   percent(c('comm0', 'comm1', 'comm2', 'comm3', 'comm4', 'comm5', 'comm6', 
             'comm7', 'comm8', 'auto', 'public', 'walk', 'other'), 'sampComm', TRUE) %>%
   percent('college', 'sampEnrol', TRUE)
+
+write.csv(riPop,file='~/riData.csv')
