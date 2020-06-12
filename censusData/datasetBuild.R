@@ -1,20 +1,9 @@
-# to do
-# * load all vars (citizenship, language spoken, income,
-# education, )
-# give income the option of individual income, and average income
-# * validate results
-# * loop through and than concat at end?
-
-
+# see censusData.md for notes
 library(tidyverse)
 library(tidycensus)
 library(sf)
 library(leaflet)
 library(stringr)
-# view all variables: load_variables(year, dataset, cache=BOOL)
-# eg: load_variables(2018, "acs5", cache=TRUE)
-# naming scheme: https://www.census.gov/programs-surveys/acs/guidance/which-data-tool/table-ids-explained.html
-# validation: https://www.census.gov/programs-surveys/acs/guidance/subjects.html
 pop <- c(Pop = "B01001_001") # verified
 sex <- c(Male = "B01001_002", Female = "B01001_026") # verified
 race <- c(White = "B03002_003", Black = "B03002_004", 
@@ -45,7 +34,11 @@ dis <- c(sampDis = "B18135_001",
 lang <- c(sampLang = "B06007_001", engOnly = "B06007_002", 
           spanish = "B06007_003", spanishStrE = "B06007_004", 
           spanishWeakE = "B06007_005") # verified
-vars = c(pop, sex, race, cit, lang, inc, pov, net, dis)
+comT <- c(sampComm = "B08134_001", comm0 = "B08134_002", comm1 = "B08134_003",
+          comm2 = "B08134_004", comm3 = "B08134_005", comm4 = "B08134_006", 
+          comm5 = "B08134_007", comm6 = "B08134_008", comm7 = "B08134_009",
+          comm8 = "B08134_010") # verified
+vars = c(pop, sex, race, cit, lang, inc, pov, net, dis, comT)
 
 # get data
 riPop <- get_acs(geography = "tract", 
@@ -58,13 +51,10 @@ riPop <- get_acs(geography = "tract",
 # trim, reshape to tidy, constrain to providence reshape to be tidy
 riPop = riPop %>% select(c('GEOID','NAME','variable','estimate')) %>%
   spread(key='variable',value='estimate')
-# constrain to providence
-riPop = riPop[riPop$GEOID < 44007010000,]
+riPop = riPop[riPop$GEOID < 44007010000,] # constrain to providence
+riPop = riPop[c('GEOID', 'NAME', names(vars))] # sort columns
 
-# sort columns
-riPop = riPop[c('GEOID', 'NAME', names(vars))]
-
-# sel to which one to delete
+# group and select functions
 group <- function(df, toGroup, colName){
   for (i in 2:length(toGroup)){
     df[toGroup[1]] <- df[toGroup[1]] + df[toGroup[i]] # add columns
@@ -73,6 +63,16 @@ group <- function(df, toGroup, colName){
   names(df)[names(df)==toGroup[1]] <- colName # rename col
   return(df)
 }
+percent <- function(df, items, pop, delete=FALSE){
+  for (item in items){
+    df[item] = df[item]/df[pop]
+  }
+  if (delete) {
+    df[pop] <- NULL # remove col
+  }
+  return(df)
+}
+
 # GROUP DATA
 riPop = riPop %>% group(c('intSubs', 'internetAccess'), 'InternetAccess') %>%
   group(c('Dis19', 'Dis64', 'Dis65'), 'Disability') %>%
@@ -89,15 +89,6 @@ riPop = riPop %>% group(c('intSubs', 'internetAccess'), 'InternetAccess') %>%
   group(c('inc12', 'inc13'), 'inc6') %>% # 100-150k
   group(c('inc14', 'inc15'), 'inc7') # > 150k
 
-percent <- function(df, items, pop, delete=FALSE){
-  for (item in items){
-    df[item] = df[item]/df[pop]
-  }
-  if (delete) {
-    df[pop] <- NULL # remove col
-  }
-  return(df)
-}
 # FIND PERCENTS
 totPop = c('Male', 'Female', 'White', 'Black', 'Other', 'Hispanic',
            'Citizen', 'NotCitizen')
@@ -108,4 +99,6 @@ riPop = riPop %>% percent(totPop, 'Pop') %>%
           'sampInc', TRUE) %>%
   percent(c('Poverty', 'abovePoverty'), 'sampPov', TRUE) %>%
   percent(c('InternetAccess', 'noInternetAccess'), 'sampInt', TRUE) %>%
-  percent(c('Disability', 'NoDisability'), 'sampDis', TRUE)
+  percent(c('Disability', 'NoDisability'), 'sampDis', TRUE) %>%
+  percent(c('comm0', 'comm1', 'comm2', 'comm3', 'comm4', 'comm5', 'comm6', 
+            'comm7', 'comm8'), 'sampComm', TRUE)
