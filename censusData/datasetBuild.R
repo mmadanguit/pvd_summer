@@ -34,11 +34,14 @@ dis <- c(sampDis = "B18135_001",
 lang <- c(sampLang = "B06007_001", engOnly = "B06007_002", 
           spanish = "B06007_003", spanishStrE = "B06007_004", 
           spanishWeakE = "B06007_005") # verified
-comT <- c(sampComm = "B08134_001", comm0 = "B08134_002", comm1 = "B08134_003",
+comm <- c(sampComm = "B08134_001", comm0 = "B08134_002", comm1 = "B08134_003",
           comm2 = "B08134_004", comm3 = "B08134_005", comm4 = "B08134_006", 
           comm5 = "B08134_007", comm6 = "B08134_008", comm7 = "B08134_009",
-          comm8 = "B08134_010") # verified
-vars = c(pop, sex, race, cit, lang, inc, pov, net, dis, comT)
+          comm8 = "B08134_010", auto = "B08134_011", public = "B08134_061", 
+          walk = "B08134_101", other = "B08134_111") # verified
+enrol <- c(sampEnrol = "B14007_001",
+           college = "B14007_017", grad = "B14007_018")
+vars = c(pop, sex, race, cit, lang, inc, pov, net, dis, comm, enrol)
 
 # get data
 riPop <- get_acs(geography = "tract", 
@@ -87,7 +90,9 @@ riPop = riPop %>% group(c('intSubs', 'internetAccess'), 'InternetAccess') %>%
   group(c('inc8', 'inc9'), 'inc4') %>% # 45-60k
   group(c('inc10', 'inc11'), 'inc5') %>% # 60-100k
   group(c('inc12', 'inc13'), 'inc6') %>% # 100-150k
-  group(c('inc14', 'inc15'), 'inc7') # > 150k
+  group(c('inc14', 'inc15'), 'inc7') %>%# > 150k
+  group(c('college', 'grad'), 'college')
+  
 
 # FIND PERCENTS
 totPop = c('Male', 'Female', 'White', 'Black', 'Other', 'Hispanic',
@@ -101,4 +106,5 @@ riPop = riPop %>% percent(totPop, 'Pop') %>%
   percent(c('InternetAccess', 'noInternetAccess'), 'sampInt', TRUE) %>%
   percent(c('Disability', 'NoDisability'), 'sampDis', TRUE) %>%
   percent(c('comm0', 'comm1', 'comm2', 'comm3', 'comm4', 'comm5', 'comm6', 
-            'comm7', 'comm8'), 'sampComm', TRUE)
+            'comm7', 'comm8', 'auto', 'public', 'walk', 'other'), 'sampComm', TRUE) %>%
+  percent('college', 'sampEnrol', TRUE)

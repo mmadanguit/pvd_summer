@@ -32,7 +32,8 @@ These tables can be found using [data.census.gov](https://data.census.gov/cedsci
     * inc6: 100-150k
     * inc7: >150k
 * Poverty: B17020
-* Education: B06009
+* Education: B06009 
+  * Only for those > 25
 * Internet: B28011
   * Internet subscribers and those with internet access without subscribing
   to internet were grouped together.
@@ -42,7 +43,20 @@ These tables can be found using [data.census.gov](https://data.census.gov/cedsci
   * Disability groups of all ages were grouped together. Non disability
   groups of all ages were grouped  together.
 * Language: B06007
-
+* Commute: B08134
+  * Brakets:
+    * comm0: <10 min
+    * comm1: 10-14 min
+    * comm2: 15-19 min
+    * comm3: 20-24 min
+    * comm4: 25-29 min
+    * comm5: 30-34 min
+    * comm6: 35-44 min
+    * comm7: 45-59 min
+    * comm8: 60+ min
+* College: B14007
+  * Combined colege students and grad/professional school students (low sample size)
+  
 ### Variable Sourcing
 Some notes on why I chose the variable notes I did. 
 
