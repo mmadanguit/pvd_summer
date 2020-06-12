@@ -34,7 +34,7 @@ educ <- c(sampEduc = "B06009_001", uHigh = "B06009_002",
           High = "B06009_003", sCollOrAssoc = "B06009_004", 
           Bachelor = "B06009_005", Graduate = "B06009_006") # verified
 net <- c(sampInt = "B28011_001", intSubs = "B28011_002",
-         intAccess = "B28011_007", noIntAccess = "B28011_008") # verified
+         internetAccess = "B28011_007", noInternetAccess = "B28011_008") # verified
 cit <- c(usBornCit = "B05001_002", pBornCit = "B05001_003", 
          aBornCit = "B05001_004", natCit = "B05001_005", 
          NotCitizen = "B05001_006") # verified
@@ -58,7 +58,6 @@ riPop <- get_acs(geography = "tract",
 # trim, reshape to tidy, constrain to providence reshape to be tidy
 riPop = riPop %>% select(c('GEOID','NAME','variable','estimate')) %>%
   spread(key='variable',value='estimate')
-print(riPop)
 # constrain to providence
 riPop = riPop[riPop$GEOID < 44007010000,]
 
@@ -74,11 +73,12 @@ group <- function(df, toGroup, colName){
   names(df)[names(df)==toGroup[1]] <- colName # rename col
   return(df)
 }
-riPop = riPop %>% group(c('intSubs', 'intAccess'), 'IntAccess') %>%
+# GROUP DATA
+riPop = riPop %>% group(c('intSubs', 'internetAccess'), 'InternetAccess') %>%
   group(c('Dis19', 'Dis64', 'Dis65'), 'Disability') %>%
   group(c('nDis19', 'nDis64', 'nDis65'), 'NoDisability') %>%
   group(c('usBornCit', 'pBornCit', 'aBornCit', 'natCit'), 'Citizen') %>%
-  group(c('Native', 'Asian', 'HIPI', 'oAlone', 'oTwo'), 'OtherRace') %>%
+  group(c('Native', 'Asian', 'HIPI', 'oAlone', 'oTwo'), 'Other') %>%
   # simplify income brackets
   group(c('inc0', 'inc1'), 'inc0') %>% # < 15k
   group(c('inc2', 'inc3'), 'inc1') %>% # 15-25k
@@ -88,3 +88,24 @@ riPop = riPop %>% group(c('intSubs', 'intAccess'), 'IntAccess') %>%
   group(c('inc10', 'inc11'), 'inc5') %>% # 60-100k
   group(c('inc12', 'inc13'), 'inc6') %>% # 100-150k
   group(c('inc14', 'inc15'), 'inc7') # > 150k
+
+percent <- function(df, items, pop, delete=FALSE){
+  for (item in items){
+    df[item] = df[item]/df[pop]
+  }
+  if (delete) {
+    df[pop] <- NULL # remove col
+  }
+  return(df)
+}
+# FIND PERCENTS
+totPop = c('Male', 'Female', 'White', 'Black', 'Other', 'Hispanic',
+           'Citizen', 'NotCitizen')
+riPop = riPop %>% percent(totPop, 'Pop') %>%
+  percent(c('engOnly', 'spanish', 'spanishStrE', 'spanishWeakE'), 
+          'sampLang', TRUE) %>%
+  percent(c('inc0', 'inc1', 'inc2', 'inc3', 'inc4', 'inc5', 'inc6', 'inc7'),
+          'sampInc', TRUE) %>%
+  percent(c('Poverty', 'abovePoverty'), 'sampPov', TRUE) %>%
+  percent(c('InternetAccess', 'noInternetAccess'), 'sampInt', TRUE) %>%
+  percent(c('Disability', 'NoDisability'), 'sampDis', TRUE)
