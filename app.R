@@ -1,6 +1,8 @@
 library(shiny)
 library(leaflet)
 library(stringr)
+library(tidyverse)
+library(tidycensus)
 library(sf)
 source('census_data_example.R')
 
@@ -18,7 +20,7 @@ ui <- fluidPage(
       
       # Input: Choose variable ----
       radioButtons("varToPlot", "Variable:",
-                   c('White','Black','Hispanic'))
+                   c('Male','White', 'Black','Hispanic',"Age"))
       
     ),
     
@@ -34,7 +36,6 @@ ui <- fluidPage(
 
 # Define server logic to summarize and view selected dataset ----
 server <- function(input, output) {
-  
   # Return the requested dataset ----
   output$distPlot <- renderLeaflet({
     pal <- colorQuantile(palette = "viridis", domain = ri_pop$input$varToPlot, n = 10)
