@@ -7,21 +7,21 @@ library(tigris)
 
 #Import Remix event data
 dir <- "/home/marion/PVDResearch/Data/mobilityData/originalData"
-filenames <- c("vehicleEvents")
-paths <- file.path(dir, paste(filenames, ".csv", sep = ""))
+filename <- "vehicleEvents"
+path <- file.path(dir, paste(filename, ".csv", sep = ""))
 
-for(i in 1:length(filenames)){
-  assign(filenames[i], read.csv(paths[i]))
-}
+assign(filename, read.csv(path))
 
 #Clean and organize event data
 cleanData <- function(data){
   data %>% 
     as_tibble() %>%
-    filter(device_type %in% "electric_scooter" & event_type_reason %in% "user_drop_off") %>%
+    filter(device_type %in% "electric_scooter" & event_type_reason %in% c("user_drop_off", "user_pick_up", "rebalance_drop_off", "rebalance_pick_up")) %>%
     mutate(event_date = substr(event_time, 1, 10), .after = provider) %>%
     mutate(event_time = substr(event_time, 12, 19)) %>%
-    select(provider, event_date, event_time, lng, lat)
+    mutate(event_time = paste(event_date, event_time)) %>%
+    mutate(event_time = as.POSIXct(event_time, tz = "EST")) %>%
+    select(provider, event_time, event_type_reason, lng, lat)
 }
 
 data <- cleanData(vehicleEvents)
@@ -38,7 +38,7 @@ eventCoords <- data.frame(lng = data$lng, lat = data$lat) %>%
 eventTracts <- st_join(eventCoords, censusTracts)
 
 #Remove redundant observation (determined using comparedf function from arsenal package)
-eventTracts <- eventTracts[-(83353),]
+eventTracts <- eventTracts[-(190557),]
 
 #Add corresponding GEOIDs and census tracts to original data
 data <- mutate(data, GEOID = eventTracts$GEOID, TRACT = eventTracts$TRACT)
