@@ -102,7 +102,7 @@ server <- function(input, output) {
             addLegend("bottomright", #Adds the legend
               pal = pal,
               values = ~ get(item),
-              title = "Population fraction",
+              title = item,
               opacity = 1)
         )
       )
