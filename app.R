@@ -72,7 +72,6 @@ server <- function(input, output) {
               
         )
       )
-      count <- count+1
     }
   })
     
