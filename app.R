@@ -35,8 +35,6 @@ ui <- fluidPage(
 
 # Define server logic to summarize and view selected dataset ----
 server <- function(input, output) {
-  makeReactiveBinding("aggregConstraintObserver")
-  aggregConstraintObserver <- list() #I literally have no idea what they do
   
   
   currentIds <- c()
@@ -44,7 +42,6 @@ server <- function(input, output) {
   observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
     for (constraintId in currentIds){ #Start by getting rid of all the maps
       removeUI(selector = paste0('#',constraintId))
-      aggregConstraintObserver[[constraintId]] <<- NULL
     } 
     currentIds <<- c()
     for(item in input$varToPlot){ #For every checked checkbox
