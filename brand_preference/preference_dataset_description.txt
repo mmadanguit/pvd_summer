@@ -1,0 +1,8 @@
+"""
+Preference Dataset Description
+"""
+
+num_pickedup_LimeLime: the number of Lime scooters picked up during the time a Lime scooter remained idle
+num_pickedup_LimeBird: the number of Lime scooters picked up during the time a Bird scooter remained idle
+num_pickedup_BirdLime: the number of Bird scooters picked up during the time a Lime scooter remained idle
+num_pickedup_BirdBird: the number of Bird scooters picked up during the time a Bird scooter remained idle
