@@ -20,104 +20,97 @@ ui <- fluidPage(
       
       # Input: Choose variable ----
       checkboxGroupInput("varToPlot", "Variable:",
-                   c('Male','White', 'Black','Hispanic',"Age")) #Defines which checkboxes to use
-      
+                   c('Pop',
+                     'Male',
+                     'Female',
+                     'White', 
+                     'Black',
+                     'Other', 
+                     'Hispanic', 
+                     'Citizen',
+                     'NotCitizen',
+                     'engOnly',
+                     'spanish',
+                     'spanishStrE',
+                     'spanishWeakE',
+                     'medFamInc',
+                     'perCapitaInc',
+                     'Poverty',
+                     'abovePoverty',
+                     'InternetAccess',
+                     'noInternetAccess',
+                     'Disability',
+                     'NoDisability',
+                     'auto',
+                     'public',
+                     'walk',
+                     'other',
+                     'college'
+                     )) #Defines which checkboxes to use
     ),
     
     # Main panel for displaying outputs ----
     mainPanel(
-      
-      # Output: Map ----
-      leafletOutput(outputId = "plot1"),
-      leafletOutput(outputId = "plot2"),
-      leafletOutput(outputId = "plot3"),
-      leafletOutput(outputId = "plot4")
+      # Output: Maps will go here
+      tags$div(id = 'placeholderConstraint') #Placeholder constraint to know where to put maps
       
     )
   )
 )
 
-# Define server logic to summarize and view selected dataset ----
+# Define server logic to load, map, and label selected datasets
 server <- function(input, output) {
-  # Return the requested dataset ----
-  output$plot1 <- renderLeaflet({
-    item <- input$varToPlot[1]
-      print(item)
-      # pal <- colorNumeric(palette = "viridis", domain = ri_pop$input$varToPlot[index], n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
-      pal <- colorNumeric(palette = "viridis", domain = 0:1, n = 10) #This line scales the colors from 0 to 1 for all variables, allowing us to see different info. 
-      ri_pop %>% 
-        st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
-        leaflet() %>% #Creates leaflet pane
-        addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
-        addPolygons(stroke = FALSE, #Creates the polygons to overlay on the map, with parameters
-                    smoothFactor = 0,
-                    fillOpacity = 0.7,
-                    color = ~ pal(get(item))) %>%
-        addLegend("bottomright", #Adds the legend
-                  pal = pal, 
-                  values = ~ get(item),
-                  title = "Population fraction",
-                  opacity = 1)
+  currentIds <- c()
+  observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
+    for (constraintId in currentIds){ #Start by getting rid of all the maps
+      removeUI(selector = paste0('#',constraintId))
+    } 
+    currentIds <<- c()
+    for(item in input$varToPlot){ #For every checked checkbox
+      constraintId <- paste0('Constraint_', item) #Make this constraint ID
+      horizontalId <- paste0('Constraint2_', item) #Make this constraint ID
+      currentIds <<- c(constraintId, horizontalId, currentIds) #And add this ID to this list
+      if(item == 'Pop' | item == 'medFamInc' | item == 'perCapitaInc'){ #If the item is any of these, scale according to the domain becuz these are the variables that are not 0 to 1 range
+        pal <- colorNumeric(palette = "plasma", domain = ri_pop$item, n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
+      } else { #For all the 0 to 1 range percentage things, do one of these
+        # pal <- colorNumeric(palette = "plasma", domain = ri_pop$item, n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
+        pal <- colorNumeric(palette = "plasma", domain = 0:1, n = 10) #This line scales the colors from 0 to 1 for all variables, allowing us to see different info.
+      }
+      labels <- sprintf( #Make a list of labels with HTML styling for each census tract
+        "<strong>%s</strong><br/>variable = %g",
+        str_extract(ri_pop$NAME, "^([^,]*)"), ri_pop[[item]] #Fill in the tract name, formatted to just the census tract number, and the value of this column
+      ) %>% lapply(htmltools::HTML)
+      insertUI( #Add a UI element
+        selector = '#placeholderConstraint', #After the placeholderConstraint div
+        ui = tags$div(id = constraintId, #Give this UI div an ID of the previously defined ID name
+          ri_pop %>% #Put this big ol map thing inside this div
+            st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
+            leaflet() %>% #Creates leaflet pane
+            addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
+            addPolygons(
+              stroke = FALSE, #Creates the polygons to overlay on the map, with parameters
+              smoothFactor = 0,
+              fillOpacity = 0.7,
+              color = ~ pal(get(item)),
+              label = labels, #Add the label
+              labelOptions = labelOptions( #Add label styling
+                style = list("font-weight" = "normal", padding = "3px 8px"),
+                textsize = "15px",
+                direction = "auto")
+            ) %>%
+            addLegend("bottomright", #Adds the legend
+              pal = pal,
+              values = ~ get(item),
+              title = item,
+              opacity = 1)
+        )
+      )
+      insertUI( #Add a horizontal line
+        selector = '#placeholderConstraint', #Add the line after the placeholderConstraint div
+        ui = tags$hr(id=horizontalId) #This is the horizontal line btw
+      )
+    }
   })
-  output$plot2 <- renderLeaflet({
-    item <- input$varToPlot[2]
-    print(item)
-    # pal <- colorNumeric(palette = "viridis", domain = ri_pop$input$varToPlot[index], n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
-    pal <- colorNumeric(palette = "viridis", domain = 0:1, n = 10) #This line scales the colors from 0 to 1 for all variables, allowing us to see different info. 
-    ri_pop %>% 
-      st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
-      leaflet() %>% #Creates leaflet pane
-      addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
-      addPolygons(stroke = FALSE, #Creates the polygons to overlay on the map, with parameters
-                  smoothFactor = 0,
-                  fillOpacity = 0.7,
-                  color = ~ pal(get(item))) %>%
-      addLegend("bottomright", #Adds the legend
-                pal = pal, 
-                values = ~ get(item),
-                title = "Population fraction",
-                opacity = 1)
-  })
-  output$plot3 <- renderLeaflet({
-    item <- input$varToPlot[3]
-    print(item)
-    # pal <- colorNumeric(palette = "viridis", domain = ri_pop$input$varToPlot[index], n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
-    pal <- colorNumeric(palette = "viridis", domain = 0:1, n = 10) #This line scales the colors from 0 to 1 for all variables, allowing us to see different info. 
-    ri_pop %>% 
-      st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
-      leaflet() %>% #Creates leaflet pane
-      addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
-      addPolygons(stroke = FALSE, #Creates the polygons to overlay on the map, with parameters
-                  smoothFactor = 0,
-                  fillOpacity = 0.7,
-                  color = ~ pal(get(item))) %>%
-      addLegend("bottomright", #Adds the legend
-                pal = pal, 
-                values = ~ get(item),
-                title = "Population fraction",
-                opacity = 1)
-  })
-  output$plot4 <- renderLeaflet({
-    item <- input$varToPlot[4]
-    print(item)
-    # pal <- colorNumeric(palette = "viridis", domain = ri_pop$input$varToPlot[index], n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
-    pal <- colorNumeric(palette = "viridis", domain = 0:1, n = 10) #This line scales the colors from 0 to 1 for all variables, allowing us to see different info. 
-    ri_pop %>% 
-      st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
-      leaflet() %>% #Creates leaflet pane
-      addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
-      addPolygons(stroke = FALSE, #Creates the polygons to overlay on the map, with parameters
-                  smoothFactor = 0,
-                  fillOpacity = 0.7,
-                  color = ~ pal(get(item))) %>%
-      addLegend("bottomright", #Adds the legend
-                pal = pal, 
-                values = ~ get(item),
-                title = "Population fraction",
-                opacity = 1)
-  })
-  
-  
 }
 
 shinyApp(ui=ui, server=server)
