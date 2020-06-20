@@ -51,17 +51,16 @@ ui <- fluidPage(
     
     # Main panel for displaying outputs ----
     mainPanel(
-      # Output: Map ----
-      tags$div(id = 'placeholderConstraint')
+      # Output: Maps will go here
+      tags$div(id = 'placeholderConstraint') #Placeholder constraint to know where to put maps
       
     )
   )
 )
 
-# Define server logic to summarize and view selected dataset ----
+# Define server logic to load, map, and label selected datasets
 server <- function(input, output) {
   currentIds <- c()
-  # Return the requested dataset ----
   observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
     for (constraintId in currentIds){ #Start by getting rid of all the maps
       removeUI(selector = paste0('#',constraintId))
@@ -107,36 +106,11 @@ server <- function(input, output) {
         )
       )
       insertUI( #Add a horizontal line
-        selector = '#placeholderConstraint', #After the placeholderConstraint div
-        ui = tags$hr(id=horizontalId)
+        selector = '#placeholderConstraint', #Add the line after the placeholderConstraint div
+        ui = tags$hr(id=horizontalId) #This is the horizontal line btw
       )
     }
   })
-    
-    
-    
-    
-    
-  # output$plot1 <- renderLeaflet({
-  #     item <- "White"
-  #     print(item)
-  #     # pal <- colorNumeric(palette = "viridis", domain = ri_pop$input$varToPlot[index], n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
-  #     pal <- colorNumeric(palette = "viridis", domain = 0:1, n = 10) #This line scales the colors from 0 to 1 for all variables, allowing us to see different info. 
-  #     ri_pop %>% 
-  #       st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
-  #       leaflet() %>% #Creates leaflet pane
-  #       addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
-  #       addPolygons(stroke = FALSE, #Creates the polygons to overlay on the map, with parameters
-  #                   smoothFactor = 0,
-  #                   fillOpacity = 0.7,
-  #                   color = ~ pal(get(item))) %>%
-  #       addLegend("bottomright", #Adds the legend
-  #                 pal = pal, 
-  #                 values = ~ get(item),
-  #                 title = "Population fraction",
-  #                 opacity = 1)
-  # })
 }
-  
 
 shinyApp(ui=ui, server=server)
