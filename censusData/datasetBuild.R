@@ -53,7 +53,7 @@ riPop <- get_acs(geography = "tract",
 # trim, reshape to tidy, constrain to providence reshape to be tidy
 riPopGeo = riPop %>% select(c('GEOID','NAME','geometry'))
 # save(riPopGeo, file="riPopGeo.Rda")
-write.table(riPopGeo, file="riPopGeo.table", quote=TRUE, sep=":", eol="\n")
+write.table(riPopGeo, file="riPopGeo.table", quote=TRUE, sep=":", eol="\n", row.names=FALSE)
 riPop = riPop %>% select(c('GEOID','NAME', 'variable','estimate')) %>%
   spread(key='variable',value='estimate')
 riPop = riPop[riPop$GEOID < 44007010000,] # constrain to providence
@@ -109,4 +109,4 @@ riPop = riPop %>% percent(totPop, 'Pop') %>%
             'comm7', 'comm8', 'auto', 'public', 'walk', 'other'), 'sampComm', TRUE) %>%
   percent('college', 'sampEnrol', TRUE)
 
-write.csv(riPop,file='riData.csv')
+write.csv(riPop,file='riData.csv',row.names = FALSE)
