@@ -7,13 +7,15 @@ library(tigris)
 library(sf)
 
 #Import trip data
-dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
+# dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
+dir <- "/Users/nolan/Documents"
 filename <- "tripsYear1WithTracts"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
 
-#Import census tract data
-dir <- "/home/marion/PVDResearch/PVDResearch/censusData"
+# #Import census tract data
+# dir <- "/home/marion/PVDResearch/PVDResearch/censusData"
+dir <- "./censusData"
 filename <- "riData"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
