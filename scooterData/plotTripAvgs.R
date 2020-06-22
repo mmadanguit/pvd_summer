@@ -14,27 +14,25 @@ for(i in 1:length(filenames)){
 #Plot average number of daily trips per month by provider
 plotProvider <- ggplot(avgTripsProvider, aes(x = Date, y = avg, color = Provider, group = Provider)) + 
   geom_path() +
-  ggtitle("Average Number of Daily Trips by Provider") + 
+  ggtitle("Average Number of Daily Trips by Month by Provider") + 
   scale_colour_discrete("Providers") +
-  ylab("Trips per Day") + 
+  ylab("Average Number of Daily Trips") + 
   xlab("Month") + 
-  scale_x_discrete(breaks = c("2018-07", "2018-09", "2018-11", "2019-01", "2019-03", "2019-05", "2019-07", "2019-09", "2019-11", "2020-01", "2020-03")) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90))
 
 #Plot average number of daily trips per month by region
 plotRegion <- ggplot(avgTripsRegion, aes(x = Date, y = value, color = variable, group = variable)) +
   geom_path() + 
-  ggtitle("Average Number of Daily Trips by Region") + 
+  ggtitle("Average Number of Daily Trips by Month by Region") + 
   scale_colour_discrete("Regions") +
-  ylab("Trips per Day") + 
+  ylab("Average Number of Daily Trips") + 
   xlab("Month") + 
-  scale_x_discrete(breaks = c("2018-07", "2018-09", "2018-11", "2019-01", "2019-03", "2019-05", "2019-07", "2019-09", "2019-11", "2020-01", "2020-03")) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90))
 
 #Save plots
 plots <- mget(ls(pattern="plot"))
 dir <- "/home/marion/PVDResearch/Plots"
-filenames <- c("tripsProvider", "tripsRegion")
+filenames <- c("avg_daily_trips_by_month_by_provider", "avg_daily_trips_by_month_by_region")
 paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
 for(i in 1:length(plots)){
