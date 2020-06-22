@@ -1,15 +1,15 @@
 #Import relevant libraries
+library(ggplot2)
+library(ggpubr)
 library(tidyverse)
 library(reshape2)
 
 #Import clean trip  data
 dir <- "/home/marion/PVDResearch/Data/tripData/cleanData"
-filenames <- c("tripsOverall")
-paths <- file.path(dir, paste(filenames, ".csv", sep = ""))
+filename <- c("tripsOverall")
+path <- file.path(dir, paste(filename, ".csv", sep = ""))
 
-for(i in 1:length(filenames)){
-  assign(filenames[i], read.csv(paths[i]))
-}
+assign(filename, read.csv(path))
 
 #Organize trip data by provider
 tripsBird <- tripsOverall %>% filter(Provider %in% "Bird")
@@ -40,13 +40,12 @@ pctTripsVeoride <- createStats(tripsVeoride)
 createPlot <- function(data, provider){
   ggplot(data, aes(x = Date, y = value, color = variable, group = variable)) +
     geom_path() + 
-    ggtitle(paste("Average Number of Daily Trips for", provider)) + 
+    ggtitle(provider) + 
     scale_colour_discrete("Regions") +
-    ylab("Trips per Day (% of Total Trips)") + 
-    scale_y_continuous(labels = percent) +
+    ylab("Daily Trips") + 
+    scale_y_continuous(labels = scales::percent) +
     xlab("Month") +
-    scale_x_discrete(breaks = c("2018-07", "2018-09", "2018-11", "2019-01", "2019-03", "2019-05", "2019-07", "2019-09", "2019-11", "2020-01", "2020-03")) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme(axis.text.x = element_text(angle = 90))
 }
 
 plotBird <- createPlot(pctTripsBird, "Bird")
@@ -54,12 +53,18 @@ plotLime <- createPlot(pctTripsLime, "Lime")
 plotSpin <- createPlot(pctTripsSpin, "Spin")
 plotVeoride <- createPlot(pctTripsVeoride, "Veoride")
 
-#Save plots
-plots <- mget(ls(pattern="plot"))
-dir <- "/home/marion/PVDResearch/Plots"
-filenames <- c("tripsBird_pct", "tripsLime_pct", "tripsSpin_pct", "tripsVeoride_pct")
-paths <- file.path(dir, paste(filenames, ".png", sep = ""))
+plotOverall <- ggarrange(plotBird, plotLime, plotSpin, plotVeoride,
+                         ncol = 1, nrow = 4, 
+                         common.legend = TRUE, legend = "right")
+plotOverall <- annotate_figure(plotOverall, 
+                               top = text_grob("(as % of Total Trips)"))
+plotOverall <- annotate_figure(plotOverall, 
+                               top = text_grob("Average Number of Daily Trips by Month by Provider by Region", face = "bold"))
 
-for(i in 1:length(plots)){
-  invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
-}
+
+#Save plots
+dir <- "/home/marion/PVDResearch/Plots"
+filename <- c("avg_daily_trips_by_month_by_provider_by_region")
+path <- file.path(dir, paste(filename, ".png", sep = ""))
+
+ggsave(file = path, plot = plotOverall)
