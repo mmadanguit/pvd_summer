@@ -67,8 +67,8 @@ createPlot <- function(cluster, EPS, MINPTS){
   ggplot(censusTracts) +
     geom_sf() +
     geom_point(data = data.frame(cluster[1]), aes(x = long, y = lat, alpha = 0.5)) + #Plot sampling of trip data
-    geom_point(aes(x = long, y = lat, colour = as.factor(cluster)), data.frame(cluster[2]), size = 2) + #Color clusters
-    geom_point(aes(x = long, y = lat, fill = "grey"), data.frame(cluster[3])) + #Color outliers
+    geom_point(aes(x = long, y = lat, colour = as.factor(cluster)), data.frame(cluster[2]), size = 1) + #Color clusters
+    #geom_point(aes(x = long, y = lat, fill = "grey"), data.frame(cluster[3])) + #Color outliers
     theme_bw() + #Remove gray background
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + #Remove grid
     theme(legend.position = "none") + #Remove legend
