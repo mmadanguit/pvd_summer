@@ -95,7 +95,7 @@ plotOverall <- ggarrange(plotWeek, plotMonth, plotYear,
                          ncol = 3, nrow = 1,
                          heights = c(4, 4, 4))
 plotOverall <- annotate_figure(plotOverall, 
-                               top = text_grob("(with rounding coordinates to nearest hundredths place)"))
+                               top = text_grob("(with coordinates rounded to nearest hundredths place)"))
 plotOverall <- annotate_figure(plotOverall, 
                                top = text_grob("Louvain clusters on different samplings", face = "bold"))
 
