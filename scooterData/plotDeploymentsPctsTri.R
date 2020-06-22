@@ -1,6 +1,9 @@
 #Import relevant libraries
-library(tidyverse)
+library(ggplot2)
+library(ggpubr)
 library(reshape2)
+library(scales)
+library(tidyverse)
 
 #Import clean deployment data
 dir <- "/home/marion/PVDResearch/Data/deploymentData/cleanData"
@@ -53,13 +56,12 @@ pctDeploymentsVeoride <- createStats(avgDeploymentsVeoride, avgTripsVeoride)
 createPlot <- function(data, provider){
   ggplot(data, aes(x = Date, y = value, color = variable, group = variable)) +
     geom_path() + 
-    ggtitle(paste("Average Number of Daily Deployments for", provider)) + 
+    ggtitle(provider) + 
     scale_colour_discrete("Regions") +
-    ylab("Deployments per Day (% of Total Trips)") + 
+    ylab("Daily Deps") + 
     scale_y_continuous(labels = percent) +
     xlab("Month") +
-    scale_x_discrete(breaks = c("2018-07", "2018-09", "2018-11", "2019-01", "2019-03", "2019-05", "2019-07", "2019-09", "2019-11", "2020-01", "2020-03")) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    theme(axis.text.x = element_text(angle = 90))
 }
 
 plotBird <- createPlot(pctDeploymentsBird, "Bird")
@@ -67,12 +69,17 @@ plotLime <- createPlot(pctDeploymentsLime, "Lime")
 plotSpin <- createPlot(pctDeploymentsSpin, "Spin")
 plotVeoride <- createPlot(pctDeploymentsVeoride, "Veoride")
 
-#Save plots
-plots <- mget(ls(pattern="plot"))
-dir <- "/home/marion/PVDResearch/Plots"
-filenames <- c("deploymentsBird_pctTri", "deploymentsLime_pctTri", "deploymentsSpin_pctTri", "deploymentsVeoride_pctTri")
-paths <- file.path(dir, paste(filenames, ".png", sep = ""))
+plotOverall <- ggarrange(plotBird, plotLime, plotSpin, plotVeoride,
+                         ncol = 1, nrow = 4, 
+                         common.legend = TRUE, legend = "right")
+plotOverall <- annotate_figure(plotOverall, 
+                               top = text_grob("(as % of Provider's Total Trips)"))
+plotOverall <- annotate_figure(plotOverall, 
+                               top = text_grob("Average Number of Daily Deployments by Month by Provider by Region", face = "bold"))
 
-for(i in 1:length(plots)){
-  invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
-}
+#Save plots
+dir <- "/home/marion/PVDResearch/Plots"
+filename <- c("avg_daily_deployments_by_month_by_provider_by_region_as_pct_total_trips")
+path <- file.path(dir, paste(filename, ".png", sep = ""))
+
+ggsave(file = path, plot = plotOverall)

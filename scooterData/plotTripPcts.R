@@ -1,8 +1,9 @@
 #Import relevant libraries
 library(ggplot2)
 library(ggpubr)
-library(tidyverse)
 library(reshape2)
+library(scales)
+library(tidyverse)
 
 #Import clean trip  data
 dir <- "/home/marion/PVDResearch/Data/tripData/cleanData"
@@ -43,7 +44,7 @@ createPlot <- function(data, provider){
     ggtitle(provider) + 
     scale_colour_discrete("Regions") +
     ylab("Daily Trips") + 
-    scale_y_continuous(labels = scales::percent) +
+    scale_y_continuous(labels = percent) +
     xlab("Month") +
     theme(axis.text.x = element_text(angle = 90))
 }
@@ -57,14 +58,14 @@ plotOverall <- ggarrange(plotBird, plotLime, plotSpin, plotVeoride,
                          ncol = 1, nrow = 4, 
                          common.legend = TRUE, legend = "right")
 plotOverall <- annotate_figure(plotOverall, 
-                               top = text_grob("(as % of Total Trips)"))
+                               top = text_grob("(as % of Provider's Total Trips)"))
 plotOverall <- annotate_figure(plotOverall, 
                                top = text_grob("Average Number of Daily Trips by Month by Provider by Region", face = "bold"))
 
 
 #Save plots
 dir <- "/home/marion/PVDResearch/Plots"
-filename <- c("avg_daily_trips_by_month_by_provider_by_region")
+filename <- c("avg_daily_trips_by_month_by_provider_by_region_as_pct_total_trips")
 path <- file.path(dir, paste(filename, ".png", sep = ""))
 
 ggsave(file = path, plot = plotOverall)
