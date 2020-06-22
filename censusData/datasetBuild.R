@@ -41,7 +41,7 @@ comm <- c(sampComm = "B08134_001", comm0 = "B08134_002", comm1 = "B08134_003",
           walk = "B08134_101", other = "B08134_111") # verified
 enrol <- c(sampEnrol = "B14007_001",
            college = "B14007_017", grad = "B14007_018")
-vars = c(pop, sex, race, cit, lang, inc, pov, net, dis, comm, enrol)
+vars <- c(pop, sex, race, cit, lang, inc, pov, net, dis, comm, enrol)
 
 # get data
 riPop <- get_acs(geography = "tract", 
@@ -51,9 +51,13 @@ riPop <- get_acs(geography = "tract",
                   geometry = TRUE, # shape data
                   cache_table = TRUE) 
 # trim, reshape to tidy, constrain to providence reshape to be tidy
-riPopGeo = riPop %>% select(c('GEOID','NAME','geometry'))
-# save(riPopGeo, file="riPopGeo.Rda")
-write.table(riPopGeo, file="riPopGeo.table", quote=TRUE, sep=":", eol="\n", row.names=FALSE)
+riPopGeo <- riPop[riPop$GEOID < 44007010000,]
+riPopGeo <- riPopGeo %>% select(c('GEOID','NAME','geometry')) 
+# riPopGeo <- riPopGeo %>% lapply(gsub, pattern="[\r]", replacement="")
+# write.csv(riPopGeo, file='riDataGeo.csv', row.names=FALSE)
+# write.table(riPopGeo, file="riDataGeo.table", quote=TRUE, sep=";", row.names=TRUE)
+saveRDS(riPopGeo, file="riDataGeo.Rds")
+# write.csv(riPopGeo,file='riDataGeo.csv')
 riPop = riPop %>% select(c('GEOID','NAME', 'variable','estimate')) %>%
   spread(key='variable',value='estimate')
 riPop = riPop[riPop$GEOID < 44007010000,] # constrain to providence
@@ -109,4 +113,4 @@ riPop = riPop %>% percent(totPop, 'Pop') %>%
             'comm7', 'comm8', 'auto', 'public', 'walk', 'other'), 'sampComm', TRUE) %>%
   percent('college', 'sampEnrol', TRUE)
 
-write.csv(riPop,file='riData.csv',row.names = FALSE)
+write.csv(riPop,file='riData.csv')
