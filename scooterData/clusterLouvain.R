@@ -9,12 +9,14 @@ library(tigris)
 
 #Import trip data
 dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
+# dir <- "/Users/Alice/Documents"
 filename <- "tripsYear1WithTracts"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
 
-#Import census tract data
+# #Import census tract data
 dir <- "/home/marion/PVDResearch/PVDResearch/censusData"
+# dir <- "/Users/Alice/Dropbox/pvd_summer/censusData"
 filename <- "riData"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
@@ -27,10 +29,10 @@ cleanData <- function(data, start_date, end_date){
     mutate(start_time = as.POSIXct(start_time, tz = "EST")) %>%
     filter(start_time > start_date & start_time < end_date) %>%
     #Create data frame of edges for clustering algorithm
-    mutate(start_latitude = round(start_latitude, digits = 2),
-           start_longitude = round(start_longitude, digits = 2),
-           end_latitude = round(end_latitude, digits = 2),
-           end_longitude = round(end_longitude, digits = 2)) %>%
+    mutate(start_latitude = 0.005*round(start_latitude/0.005, digits = 0),
+           start_longitude = 0.005*round(start_longitude/0.005, digits = 0),
+           end_latitude = 0.005*round(end_latitude/0.005, digits = 0),
+           end_longitude = 0.005*round(end_longitude/0.005, digits = 0)) %>%
     mutate(from = paste("(", start_latitude, ", ", start_longitude, ")", sep = ""),
            to = paste("(", end_latitude, ", ", end_longitude, ")", sep = "")) %>%
     group_by(from, to) %>%
@@ -100,7 +102,7 @@ plotOverall <- annotate_figure(plotOverall,
                                top = text_grob("Louvain clusters on different samplings", face = "bold"))
 
 #Save plot
-dir <- "/home/marion/PVDResearch/Plots"
+#dir <- "/Users/Alice/Dropbox/pvd_summer"
 filename <- "Louvain_clusters_on_different_samplings"
 path <- file.path(dir, paste(filename, ".png", sep = ""))
 
