@@ -48,10 +48,16 @@ riPop <- get_acs(geography = "tract",
                   state = "RI", 
                   county = 'Providence County',
                   variables = vars,
-                  geometry = TRUE, # shape data
+                  geometry = FALSE, # shape data
                   cache_table = TRUE) 
 # trim, reshape to tidy, constrain to providence reshape to be tidy
-riPopGeo <- riPop[riPop$GEOID < 44007010000,]
+riPopGeo <- get_acs(geography = "tract", 
+                 state = "RI", 
+                 county = 'Providence County',
+                 variables = pop,
+                 geometry = TRUE, # shape data
+                 cache_table = TRUE) 
+riPopGeo <- riPopGeo[riPopGeo$GEOID < 44007010000,]
 riPopGeo <- riPopGeo %>% select(c('GEOID','NAME','geometry')) 
 # riPopGeo <- riPopGeo %>% lapply(gsub, pattern="[\r]", replacement="")
 # write.csv(riPopGeo, file='riDataGeo.csv', row.names=FALSE)
