@@ -62,7 +62,7 @@ riPopGeo <- riPopGeo %>% select(c('GEOID','NAME','geometry'))
 # riPopGeo <- riPopGeo %>% lapply(gsub, pattern="[\r]", replacement="")
 # write.csv(riPopGeo, file='riDataGeo.csv', row.names=FALSE)
 # write.table(riPopGeo, file="riDataGeo.table", quote=TRUE, sep=";", row.names=TRUE)
-saveRDS(riPopGeo, file="riDataGeo.Rds")
+saveRDS(riPopGeo, file="censusData/riDataGeo.Rds")
 # write.csv(riPopGeo,file='riDataGeo.csv')
 riPop = riPop %>% select(c('GEOID','NAME', 'variable','estimate')) %>%
   spread(key='variable',value='estimate')
@@ -119,4 +119,4 @@ riPop = riPop %>% percent(totPop, 'Pop') %>%
             'comm7', 'comm8', 'auto', 'public', 'walk', 'other'), 'sampComm', TRUE) %>%
   percent('college', 'sampEnrol', TRUE)
 
-write.csv(riPop,file='riData.csv')
+write.csv(riPop,file='censusData/riData.csv')
