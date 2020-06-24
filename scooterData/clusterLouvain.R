@@ -38,9 +38,9 @@ cleanData <- function(data, start_date, end_date) {
     group_by(from, to) %>%
     summarise(lat = start_latitude, 
               long = start_longitude,
-              weight = n()) 
-    # Remove outliers
-    # filter(weight > 1)
+              weight = n()) %>%
+    # Remove infrequent trips
+    filter(weight > 1)
 }
 
 dataWeek <- cleanData(tripsYear1WithTracts, start_date = "2019-07-01", end_date = "2019-07-08")
@@ -69,10 +69,16 @@ createClusters <- function(data){
   numNodes <- data.frame(data) %>%
     distinct(from, .keep_all = TRUE) %>%
     group_by(cluster) %>%
-    summarise(count = n()) 
-  numNodes <- numNodes$count
-
-  list(data, modularity = modularity, numClusters = numClusters, numNodes = numNodes)
+    summarise(count = n()) %>% 
+    filter(count > 1)
+  # Remove clusters with only one node
+  filteredClusters <- numNodes$cluster
+  data <- data %>% filter(cluster %in% filteredClusters)
+    
+  list(data, 
+       modularity = modularity, 
+       numClusters = numClusters, 
+       numNodes = numNodes$count)
 }
 
 dataWeek <- createClusters(dataWeek)
@@ -94,7 +100,8 @@ createPlot <- function(data, title){
     scale_color_discrete(name = "Number of Nodes per Cluster", labels = data$numNodes) +
     guides(color = guide_legend(ncol = 2)) +
     labs(title = title, 
-         subtitle = paste("Modularity:", data$modularity, 
+         subtitle = paste("(with one-node clusters and infrequent trips filtered out)",
+                          "\nModularity:", data$modularity, 
                           "\nClusters:", data$numClusters)) +
     # Remove gray background
     theme_bw() + 
@@ -112,7 +119,9 @@ plotYear <- createPlot(dataYear, "Louvain clusters on one year of data")
 plots <- mget(ls(pattern="plot"))
 dir <- "/home/marion/PVDResearch/Plots"
 # dir <- "/Users/Alice/Dropbox/pvd_summer"
-filenames <- c("Louvain_clusters_on_one_week", "Louvain_clusters_on_one_month", "Louvain_clusters_on_one_year")
+filenames <- c("Louvain_clusters_on_one_month_with_filtering", 
+               "Louvain_clusters_on_one_week_with_filtering", 
+               "Louvain_clusters_on_one_year_with_filtering")
 paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
 for(i in 1:length(plots)){
