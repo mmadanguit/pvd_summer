@@ -8,58 +8,71 @@ source('census_data_example.R')
 
 
 ui <- fluidPage(
-  
-  # App title ----
-  titlePanel("Providence Census Information"),
-  
-  # Sidebar layout with input and output definitions ----
-  sidebarLayout(
-    
-    # Sidebar panel for inputs ----
-    sidebarPanel(
+  tabsetPanel(
+    tabPanel("CensusStuff",
+      # App title ----
+      titlePanel("Providence Census Information"),
       
-      # Input: Choose variable ----
-      checkboxGroupInput("varToPlot", "Variable:",
-                   c('Pop',
-                     'Male',
-                     'Female',
-                     'White', 
-                     'Black',
-                     'Other', 
-                     'Hispanic', 
-                     'Citizen',
-                     'NotCitizen',
-                     'engOnly',
-                     'spanish',
-                     'spanishStrE',
-                     'spanishWeakE',
-                     'medFamInc',
-                     'perCapitaInc',
-                     'Poverty',
-                     'abovePoverty',
-                     'InternetAccess',
-                     'noInternetAccess',
-                     'Disability',
-                     'NoDisability',
-                     'auto',
-                     'public',
-                     'walk',
-                     'other',
-                     'college'
-                     )) #Defines which checkboxes to use
+      # Sidebar layout with input and output definitions ----
+      sidebarLayout(
+        
+        # Sidebar panel for inputs ----
+        sidebarPanel(
+          
+          # Input: Choose variable ----
+          checkboxGroupInput("varToPlot", "Variable:",
+            c(
+              'Pop',
+              'Male',
+              'Female',
+              'White', 
+              'Black',
+              'Other', 
+              'Hispanic', 
+              'Citizen',
+              'NotCitizen',
+              'engOnly',
+              'spanish',
+              'spanishStrE',
+              'spanishWeakE',
+              'medFamInc',
+              'perCapitaInc',
+              'Poverty',
+              'abovePoverty',
+              'InternetAccess',
+              'noInternetAccess',
+              'Disability',
+              'NoDisability',
+              'auto',
+              'public',
+              'walk',
+              'other',
+              'college'
+            )
+          ), #Defines which checkboxes to use
+          width = 3
+        ),
+        
+        # Main panel for displaying outputs ----
+        mainPanel(
+          # Output: Maps will go here
+          tags$div(id = 'placeholderConstraint') #Placeholder constraint to know where to put maps
+          
+        )
+      )
     ),
-    
-    # Main panel for displaying outputs ----
-    mainPanel(
-      # Output: Maps will go here
-      tags$div(id = 'placeholderConstraint') #Placeholder constraint to know where to put maps
-      
+    tabPanel("Maeve's Map",
+      titlePanel("Maeve stuf"),
+        mainPanel(
+          h3(verbatimTextOutput("placeholder", placeholder = TRUE))
+        )
+      )
     )
   )
-)
 
 # Define server logic to load, map, and label selected datasets
 server <- function(input, output) {
+  output$placeholder <- renderText("Placeholder")
   currentIds <- c()
   observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
     for (constraintId in currentIds){ #Start by getting rid of all the maps
