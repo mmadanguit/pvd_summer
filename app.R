@@ -11,7 +11,7 @@ source('demand/demandModel.R')
 
 ui <- fluidPage(
   tabsetPanel(
-    tabPanel("CensusStuff",
+    tabPanel("Census Data Map",
       # App title ----
       titlePanel("Providence Census Information"),
       
@@ -63,11 +63,10 @@ ui <- fluidPage(
         )
       )
     ),
-    tabPanel("Maeve's Map",
-      titlePanel("Maeve stuf"),
+    tabPanel("Demand Map",
+      titlePanel("Demand Map"),
         mainPanel(
-          leafletOutput("demandMapPlot"),
-          # mapview:::plainViewOutput("test")
+          leafletOutput("demandMapPlot"), #This is where the demand map will go
         )
       )
     )
@@ -128,8 +127,8 @@ server <- function(input, output) {
     }
   })
   
-  output$demandMapPlot <- renderLeaflet({
-    mv@map
+  output$demandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
+    mv@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
   })
 }
 
