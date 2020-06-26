@@ -1,36 +1,38 @@
-#Install relevant libraries
+# Install relevant libraries ---------------------------------------------------
 library(igraph)
 library(ggplot2)
-library(ggpubr)
 library(grid)
 library(sf)
 library(tidyverse)
 library(tigris)
 
-#Import trip data
+# Import trip data -------------------------------------------------------------
 dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
+# dir <- "/Users/Alice/Documents"
 filename <- "tripsYear1WithTracts"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
 
-#Import census tract data
+# Import census tract data -----------------------------------------------------
 dir <- "/home/marion/PVDResearch/PVDResearch/censusData"
+# dir <- "/Users/Alice/Dropbox/pvd_summer/censusData"
 filename <- "riData"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
 
-#Clean and organize trip data to cluster
-cleanData <- function(data, start_date, end_date){
+# Clean and organize trip data to cluster --------------------------------------
+cleanData <- function(data, start_date, end_date) {
   data %>%
     filter(minutes >= 3) %>% 
-    #Select time range
+    # Select time range 
     mutate(start_time = as.POSIXct(start_time, tz = "EST")) %>%
     filter(start_time > start_date & start_time < end_date) %>%
-    #Create data frame of edges for clustering algorithm
-    mutate(start_latitude = round(start_latitude, digits = 2),
-           start_longitude = round(start_longitude, digits = 2),
-           end_latitude = round(end_latitude, digits = 2),
-           end_longitude = round(end_longitude, digits = 2)) %>%
+    # Round coordinates
+    mutate(start_latitude = 0.005*round(start_latitude/0.005, digits = 0),
+           start_longitude = 0.005*round(start_longitude/0.005, digits = 0),
+           end_latitude = 0.005*round(end_latitude/0.005, digits = 0),
+           end_longitude = 0.005*round(end_longitude/0.005, digits = 0)) %>%
+    # Create data frame of edges for clustering algorithm
     mutate(from = paste("(", start_latitude, ", ", start_longitude, ")", sep = ""),
            to = paste("(", end_latitude, ", ", end_longitude, ")", sep = "")) %>%
     group_by(from, to) %>%
@@ -43,65 +45,74 @@ dataWeek <- cleanData(tripsYear1WithTracts, start_date = "2019-07-01", end_date 
 dataMonth <- cleanData(tripsYear1WithTracts, start_date = "2019-07-01", end_date = "2019-08-01")
 dataYear <- cleanData(tripsYear1WithTracts, start_date = "2018-10-17", end_date = "2019-09-19")
 
-#Create clusters using Infomap algorithm
+# Create clusters using Louvain algorithm --------------------------------------
 createClusters <- function(data){
-  #Create graph for clustering algorithm
+  # Create graph for clustering algorithm
   g <- graph_from_data_frame(data, directed = FALSE)
-  #Create clusters
+  # Create clusters
   imc <- cluster_infomap(g)
   clusters <- stack(membership(imc))
   colnames(clusters) <- c("group", "coordinates")
-  #Map trip data to clusters
+  # Map trip data to clusters
   data$cluster <- NA
-  for (i in 1:nrow(clusters)){
+  for (i in 1:nrow(clusters)) {
     coord <- clusters[i,]$coordinates
     group <- clusters[i,]$group
     index <- which(data$from == coord)
     data$cluster[index] <- group
   } 
-  list(data, modularity = round(modularity(imc), digits = 2), numGroups = max(data$cluster))
+  # Track modularity, number of clusters, and number of nodes per cluster
+  modularity = round(modularity(imc), digits = 2)
+  numClusters = max(data$cluster)
+  numNodes <- data.frame(data) %>%
+    distinct(from, .keep_all = TRUE) %>%
+    group_by(cluster) %>%
+    summarise(count = n()) 
+  numNodes <- numNodes$count
+  
+  list(data, modularity = modularity, numClusters = numClusters, numNodes = numNodes)
 }
 
 dataWeek <- createClusters(dataWeek)
 dataMonth <- createClusters(dataMonth)
 dataYear <- createClusters(dataYear)
 
-#Plot clusters
+# Plot clusters ----------------------------------------------------------------
 createPlot <- function(data, title){
-  #Get map of Providence County census tracts
+  # Get map of Providence County census tracts
   censusTracts <- tracts("RI", class = "sf") %>%
     select(GEOID) %>%
     filter(GEOID %in% riData$GEOID)
-  #Plot clusters over map of census tracts
+  # Plot clusters over map of census tracts
   ggplot(censusTracts) +
     geom_sf() +
-    geom_point(data = data.frame(data[1]), aes(x = long, y = lat, alpha = 0.5)) + #Plot sampling of trip data
-    geom_point(aes(x = long, y = lat, colour = as.factor(cluster)), data.frame(data[1]), size = 2) + #Color clusters
-    theme_bw() + #Remove gray background
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + #Remove grid
-    theme(legend.position = "none") + #Remove legend 
-    theme(axis.text.x = element_text(angle = 90)) + #Rotate x axis labels
-    labs(title = title,
-         subtitle = paste("Modularity: ", data$modularity, 
-                          "\n", "Clusters: ", data$numGroups,
-                          sep = ""))
+    # Plot clusters
+    geom_point(data = data.frame(data[1]), aes(x = long, y = lat, color = as.factor(cluster)), size = 2) + 
+    # Label plot
+    scale_color_discrete(name = "Number of Nodes per Cluster", labels = data$numNodes) +
+    guides(color = guide_legend(ncol = 4)) +
+    labs(title = title, 
+         subtitle = paste("Modularity:", data$modularity, 
+                          "\nClusters:", data$numClusters)) +
+    # Remove gray background
+    theme_bw() + 
+    # Remove grid
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
+    # Rotate x axis labels
+    theme(axis.text.x = element_text(angle = 90))
 }
 
-plotWeek <- createPlot(dataWeek, "One Week") 
-plotMonth <- createPlot(dataMonth, "One Month")
-plotYear <- createPlot(dataYear, "One Year")
+plotWeek <- createPlot(dataWeek, "Infomap clusters on one week of data") 
+plotMonth <- createPlot(dataMonth, "Infomap clusters on one month of data")
+plotYear <- createPlot(dataYear, "Infomap clusters on one year of data")
 
-plotOverall <- ggarrange(plotWeek, plotMonth, plotYear,
-                         ncol = 3, nrow = 1,
-                         heights = c(4, 4, 4))
-plotOverall <- annotate_figure(plotOverall, 
-                               top = text_grob("(with coordinates rounded to nearest hundredths place)"))
-plotOverall <- annotate_figure(plotOverall, 
-                               top = text_grob("Infomap clusters on different samplings", face = "bold"))
-
-#Save plot
+# Save plots -------------------------------------------------------------------
+plots <- mget(ls(pattern="plot"))
 dir <- "/home/marion/PVDResearch/Plots"
-filename <- "Infomap_clusters_on_different_samplings"
-path <- file.path(dir, paste(filename, ".png", sep = ""))
+# dir <- "/Users/Alice/Dropbox/pvd_summer"
+filenames <- c("Infomap_clusters_on_one_week", "Infomap_clusters_on_one_month", "Infomap_clusters_on_one_year")
+paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
-ggsave(file = path, plot = plotOverall)
+for(i in 1:length(plots)){
+  invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
+}
