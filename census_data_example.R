@@ -1,9 +1,5 @@
 library(tidyverse)
-library(tidycensus)
 library(sf)
-library(leaflet)
-library(stringr)
-
 
 ri_pop_data <- read.csv("censusData/riData.csv") #Load Maeve's dataset of census data
 ri_pop_geo <- readRDS("censusData/riDataGeo.Rds") #Load Maeve's dataset of geometry data
