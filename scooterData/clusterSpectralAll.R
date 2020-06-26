@@ -135,4 +135,13 @@ createPlot <- function(data, title){
 plotYearGeo <- createPlot(geoYear, "Spectral clustering by geographical information")
 plotYearUsage <- createPlot(usageYear, "Spectral clustering by usage pattern")
 
+# Save plots -------------------------------------------------------------------
+plots <- mget(ls(pattern="plot"))
+dir <- "/home/marion/PVDResearch/Plots"
+# dir <- "/Users/Alice/Dropbox/pvd_summer"
+filenames <- c("Spectral_clusters_by_geo", "Spectral_clusters_by_usage")
+paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
+for(i in 1:length(plots)){
+  invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
+}
