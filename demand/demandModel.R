@@ -38,6 +38,6 @@ demand <- st_as_sf(demand)
 
 time <- trips %>% subset(DATE == "2020-01-07")
 # mapview(Spatial) # map data needs GEOID, name, and geometry
-mapview(demand, zcol = "avgYear")
+mv <- mapview(demand, zcol = "avgYear")
 
 

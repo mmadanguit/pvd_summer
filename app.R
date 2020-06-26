@@ -4,7 +4,9 @@ library(stringr)
 library(tidyverse)
 library(tidycensus)
 library(sf)
+library(mapview)
 source('census_data_example.R')
+source('demand/demandModel.R')
 
 
 ui <- fluidPage(
@@ -56,7 +58,7 @@ ui <- fluidPage(
         # Main panel for displaying outputs ----
         mainPanel(
           # Output: Maps will go here
-          tags$div(id = 'placeholderConstraint') #Placeholder constraint to know where to put maps
+          tags$div(id = 'censusPlaceholderConstraint') #Placeholder constraint to know where to put maps
           
         )
       )
@@ -64,7 +66,8 @@ ui <- fluidPage(
     tabPanel("Maeve's Map",
       titlePanel("Maeve stuf"),
         mainPanel(
-          h3(verbatimTextOutput("placeholder", placeholder = TRUE))
+          leafletOutput("demandMapPlot"),
+          # mapview:::plainViewOutput("test")
         )
       )
     )
@@ -72,7 +75,7 @@ ui <- fluidPage(
 
 # Define server logic to load, map, and label selected datasets
 server <- function(input, output) {
-  output$placeholder <- renderText("Placeholder")
+  # output$placeholder <- renderText("Placeholder")
   currentIds <- c()
   observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
     for (constraintId in currentIds){ #Start by getting rid of all the maps
@@ -94,7 +97,7 @@ server <- function(input, output) {
         str_extract(ri_pop$NAME, "^([^,]*)"), ri_pop[[item]] #Fill in the tract name, formatted to just the census tract number, and the value of this column
       ) %>% lapply(htmltools::HTML)
       insertUI( #Add a UI element
-        selector = '#placeholderConstraint', #After the placeholderConstraint div
+        selector = '#censusPlaceholderConstraint', #After the censusPlaceholderConstraint div
         ui = tags$div(id = constraintId, #Give this UI div an ID of the previously defined ID name
           ri_pop %>% #Put this big ol map thing inside this div
             st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
@@ -123,6 +126,10 @@ server <- function(input, output) {
         ui = tags$hr(id=horizontalId) #This is the horizontal line btw
       )
     }
+  })
+  
+  output$demandMapPlot <- renderLeaflet({
+    mv@map
   })
 }
 
