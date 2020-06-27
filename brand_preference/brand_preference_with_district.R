@@ -10,8 +10,12 @@ library(pracma)
 # read data
 events_data <- read_csv("events_for_multiple_providers_from_19-06-11_to_19-06-18.csv")
 loc_data <- read_csv("locations_for_multiple_providers_from_19-06-11_to_19-06-18.csv")
-# events_data <- read_csv("event_data.csv")
-# loc_data <- read_csv("loc_data.csv")
+
+# get rid of rows that contain NA in areas column
+loc_data <- loc_data[rowSums(is.na(loc_data)) == 0,]
+
+# get the first word from area/address info
+loc_data$areas <- gsub("([A-Za-z]+).*", "\\1", loc_data$areas)
 
 # filter data
 filtered_events_data <- events_data %>% filter(!grepl("unavailable", event_type)) %>% 
@@ -42,6 +46,7 @@ filtered_loc_data$start_time <- as.POSIXct(filtered_loc_data$start_time)
 filtered_loc_data$end_time <- as.POSIXct(filtered_loc_data$end_time)
 
 ################################################################################
+
 # set global variable
 MI_RADIUS <- 3956
 
@@ -67,6 +72,7 @@ brand_pref_2 <- c()
 brand_pref_3 <- c()
 brand_pref_4 <- c()
 
+# function for finding the number of scooters pickedup for a stagnant scooter
 find_pickedup_status <- function(data, brand, start, end, lat, lng) {
   var1 <- 0
   var2 <- 0
@@ -103,7 +109,8 @@ find_pickedup_status <- function(data, brand, start, end, lat, lng) {
 # generate tibble
 preference_data <- tibble(end_time = filtered_loc_data$end_time, 
                           stagnant_time = difftime(filtered_loc_data$end_time, filtered_loc_data$start_time, units = "hours"),
-                          provider = filtered_loc_data$provider)
+                          provider = filtered_loc_data$provider,
+                          area = filtered_loc_data$areas)
 
 preference_data$num_pickedup_LimeLime <- rep(0, length.out=nrow(filtered_loc_data))
 preference_data$num_pickedup_LimeBird <- rep(0, length.out=nrow(filtered_loc_data))
@@ -132,4 +139,4 @@ preference_data$num_pickedup_BirdLime <- brand_pref_3
 preference_data$num_pickedup_BirdBird <- brand_pref_4
 
 # save preference_data as csv
-write_csv(preference_data, "preference_data_corrected.csv")
+write_csv(preference_data, "preference_data_with_district_corrected.csv")

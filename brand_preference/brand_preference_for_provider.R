@@ -7,7 +7,7 @@ library(reshape2)
 library(data.table)
 
 # read data
-preference_data <- read_csv("preference_data.csv")
+preference_data <- read_csv("preference_data_corrected.csv")
 
 # separate preference_data into the providers
 lime_preference_data <- preference_data %>% filter(grepl("Lime", provider))
@@ -41,22 +41,22 @@ bird_preference_data <- bird_preference_data %>%
 
 
 # plot
-# g <- ggplot(data = lime_preference_data, aes(x=end_time, y=limelime_percent, group=1, colour = "limelime")) + 
-#   geom_line(data = lime_preference_data, aes(x=end_time, y=limebird_percent, group=1, colour = "limebird")) + geom_line() +
-#   theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
-#   labs(x="Day", y="Percent of Scooters Chosen (%)") + 
-#   ggtitle("Brand Preference For Lime") + 
-#   scale_colour_manual("", 
-#                       breaks = c("limelime", "limebird"),
-#                       values = c("green", "steelblue"))
-
-g <- ggplot(data = bird_preference_data, aes(x=end_time, y=birdlime_percent, group=1, colour = "birdlime")) +
-  geom_line(data = bird_preference_data, aes(x=end_time, y=birdbird_percent, group=1, colour = "birdbird")) + geom_line() +
+g <- ggplot(data = lime_preference_data, aes(x=end_time, y=limelime_percent, group=1, colour = "limelime")) +
+  geom_line(data = lime_preference_data, aes(x=end_time, y=limebird_percent, group=1, colour = "limebird")) + geom_line() +
   theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
   labs(x="Day", y="Percent of Scooters Chosen (%)") +
-  ggtitle("Brand Preference For Bird") +
+  ggtitle("Brand Preference For Lime") +
   scale_colour_manual("",
-                      breaks = c("birdlime", "birdbird"),
+                      breaks = c("limelime", "limebird"),
                       values = c("green", "steelblue"))
+
+# g <- ggplot(data = bird_preference_data, aes(x=end_time, y=birdlime_percent, group=1, colour = "birdlime")) +
+#   geom_line(data = bird_preference_data, aes(x=end_time, y=birdbird_percent, group=1, colour = "birdbird")) + geom_line() +
+#   theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+#   labs(x="Day", y="Percent of Scooters Chosen (%)") +
+#   ggtitle("Brand Preference For Bird") +
+#   scale_colour_manual("",
+#                       breaks = c("birdlime", "birdbird"),
+#                       values = c("green", "steelblue"))
 
 print(g)
