@@ -45,15 +45,27 @@ demand <- demand %>% mutate(
   trips %>% filter(DATE >= "2019-03-20" & DATE <= "2019-06-20") %>% # spring
     summarize(avgSpring=mean(n), stdSpring=sd(n), zeroSpring = sum(n == 0)),
   trips %>% filter(DATE >= "2019-06-21" & DATE <= "2019-09-22") %>% # summer
-    summarize(avgSpring=mean(n), stdSpring=sd(n), zeroSummer = sum(n == 0)),
+    summarize(avgSummer=mean(n), stdSummer=sd(n), zeroSummer = sum(n == 0)),
   trips %>% filter(DATE >= "2019-09-23" & DATE <= "2019-10-31") %>% # fall
-    summarize(avgSpring=mean(n), stdSpring=sd(n), zeroFall = sum(n == 0)))
+    summarize(avgFall=mean(n), stdFall=sd(n), zeroFall = sum(n == 0)),
+  trips %>% filter(DATE >= "2019-04-01" & DATE <= "2019-04-30") %>% # april
+    summarize(avgApril=mean(n), stdApril=sd(n), zeroApril = sum(n == 0)),
+  trips %>% filter(DATE >= "2019-05-01" & DATE <= "2019-05-31") %>% # may
+    summarize(avgMay=mean(n), stdMay=sd(n), zeroMay = sum(n == 0)),
+  trips %>% filter(DATE >= "2019-06-01" & DATE <= "2019-06-30") %>% # june
+    summarize(avgJune=mean(n), stdJune=sd(n), zeroJune = sum(n == 0)),
+  trips %>% filter(DATE >= "2019-07-01" & DATE <= "2019-07-31") %>% # july
+    summarize(avgJuly=mean(n), stdJuly=sd(n), zeroJuly = sum(n == 0)),
+  trips %>% filter(DATE >= "2019-08-01" & DATE <= "2019-08-31") %>% # august
+    summarize(avgAug=mean(n), stdAug=sd(n), zeroAug = sum(n == 0)),)
+
 demandGeo <- geoData %>% filter(as.logical(match(geoData$TRACT, demand$TRACT)))
 demand <- demand %>% mutate(GEOMETRY = demandGeo$geometry, NAME = demandGeo$NAME) # add geometry data
 demand <- st_as_sf(demand)
 
 time <- trips %>% subset(DATE == "2020-01-07")
-# mapview(Spatial) # map data needs GEOID, name, and geometry
-mv <- mapview(demand, zcol = "avgYear")
+pal <- mapviewPalette("mapviewSpectralColors")
+mv <- mapview(demand, zcol = "avgAug", col.regions = pal(20))
+print(mv)
 
 
