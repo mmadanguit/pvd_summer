@@ -5,6 +5,7 @@ library(sf)
 library(tidyverse)
 library(tigris)
 library(kernlab)
+library(modeest)
 
 # Import trip data -------------------------------------------------------------
 dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
@@ -48,6 +49,14 @@ cleanData <- function(data, start_date, end_date) {
 dataYear <- cleanData(tripsYear1WithTracts, start_date = "2018-10-17", end_date = "2019-09-19")
 
 # Use spectral clustering to group by geographical information -----------------
+numNodes <- function(data) {
+  # Count number of nodes per cluster
+  numNodes <- data %>%
+    group_by(sc) %>%
+    summarise(count = n()) 
+  return(numNodes$count)
+}
+
 clusterByGeo <- function(data, numClusters) {
   # Summarize data by geographical information
   data <- data %>%
@@ -60,11 +69,8 @@ clusterByGeo <- function(data, numClusters) {
   data <- data %>% 
     mutate(from = paste("(", start_lat, ", ", start_long, ")", sep = ""), 
            sc = as.factor(sc)) 
-  # Track number of nodes per cluster
-  numNodes <- data %>%
-    group_by(sc) %>%
-    summarise(count = n()) 
-  numNodes <- numNodes$count
+  # Count number of nodes per cluster
+  numNodes <- numNodes(data)
   return(list(clusters = data, numNodes = numNodes))
 }
 
@@ -78,8 +84,8 @@ calculateUsage <- function(data, geoData) {
   for (i in 1:nrow(geoData)) {
     coord <- geoData[i,]$from
     sc <- geoData[i,]$sc
-    index <- which(data$to == coord)
-    data$end_sc[index] <- sc
+    ind <- which(data$to == coord)
+    data$end_sc[ind] <- sc
   } 
   # Remove end coordinates that do not correspond to a geographical cluster
   data <- data[!is.na(data$end_sc),]
@@ -108,11 +114,8 @@ clusterByUsage <- function(data, geoData, numClusters) {
            start_long = usageData$start_long,
            from = paste("(", start_lat, ", ", start_long, ")", sep = ""),
            sc = as.factor(sc))
-  # Track number of nodes per cluster
-  numNodes <- data %>%
-    group_by(sc) %>%
-    summarise(count = n()) 
-  numNodes <- numNodes$count
+  # Count number of nodes per cluster
+  numNodes <- numNodes(data)
   return(list(clusters = data, numNodes = numNodes))
 }
 
@@ -140,11 +143,8 @@ splitClusters <- function(data, numGeo, numUsage) {
       filter(sc != max) %>%
       select(start_lat, start_long, from, sc)
     data <- rbind(data, clusterData)
-    # Track number of nodes per cluster
-    numNodes <- data %>%
-      group_by(sc) %>%
-      summarise(count = n()) 
-    numNodes <- numNodes$count
+    # Count number of nodes per cluster
+    numNodes <- numNodes(data)
     # Replace original pattern clustering result with new clustering result
     data <- (list(clusters = data, numNodes = numNodes))
   } 
@@ -154,18 +154,41 @@ splitClusters <- function(data, numGeo, numUsage) {
 splitYear <- splitClusters(usageYear, numGeo, numUsage)
 
 # Use LPA to make clustering result more reasonable ----------------------------
-sample <- splitYear$clusters %>%
-  select(start_long, start_lat)
-dist <- as.matrix(distm(sample, sample, distGeo))
-dist <- as.matrix(dist(sample, diag = TRUE, upper = TRUE))
-colnames(dist) <- splitYear$clusters$from
-g <- graph_from_adjacency_matrix(dist, mode = "lower", weighted = TRUE)
-lpa <- cluster_label_prop(g, weights = , initial = splitYear$clusters$sc)
-clusters <- stack(membership(lpa))
-colnames(clusters) <- c("group", "coordinates")
+mode <- function(x) {
+  # Calculate mode of a set of data
+  ux <- unique(x)
+  return(ux[which.max(tabulate(match(x, ux)))])
+}
+
+relabelClusters <- function(data) {
+  # Create distance matrix from coordinate nodes
+  coord <- data$clusters %>%
+    select(start_long, start_lat)
+  dist <- as.data.frame(distm(coord, coord, distGeo))
+  dist[dist == 0] <- NA
+  # Initialize data frame to hold relabeled data
+  relabeledData <- data$clusters
+  # Loop through each coordinate node
+  for (i in 1:nrow(data$clusters)) {
+    # Determine 10 nearest nodes (neighbors)
+    neighbors <- 10
+    ind <- sort(dist[,i], na.last = TRUE, index.return = TRUE)$ix
+    ind <- ind[1:neighbors]
+    # Determine most common cluster label of neighbors
+    cluster <- data$clusters[ind,] %>%
+      summarise(mode = mode(sc))
+    # Relabel selected node based on neighbors
+    relabeledData$sc[i] <- cluster[[1]]
+  }
+  # Count number of nodes per cluster
+  numNodes <- numNodes(relabeledData)
+  return(list(clusters = relabeledData, numNodes = numNodes))
+}
+
+relabelYear <- relabelClusters(splitYear)
 
 # Plot clusters ----------------------------------------------------------------
-createPlot <- function(data, title){
+createPlot <- function(data, title, numGeo, numUsage){
   # Get map of Providence County census tracts
   censusTracts <- tracts("RI", class = "sf") %>%
     select(GEOID) %>%
@@ -176,10 +199,10 @@ createPlot <- function(data, title){
     # Plot clusters
     geom_point(data = data$clusters, aes(x = start_long, y = start_lat, color = as.factor(sc)), size = 1) + #Color clusters
     # Label plot
-    scale_color_discrete(name = "Number of Nodes per Cluster", labels = data$numNodes) +
-    guides(color = guide_legend(ncol = 1)) +
+    scale_color_discrete(name = "Nodes per Cluster", labels = data$numNodes) +
+    guides(color = guide_legend(ncol = 2)) +
     labs(title = title,
-         subtitle = "(with infrequent trips filtered out)") +
+         subtitle = paste("numGeo =", numGeo, "and numUsage =", numUsage)) +
     # Remove gray background
     theme_bw() + 
     # Remove grid
@@ -189,10 +212,10 @@ createPlot <- function(data, title){
   return(plot)
 }
 
-plotYearGeo <- createPlot(geoYear, "Spectral clustering by geographical information")
-plotYearUsage <- createPlot(usageYear, "Spectral clustering by usage pattern")
-plotYearSplit <- createPlot(splitYear, "Usage pattern clustering split by geographical information")
-plotYearLPA <- createPlot(ex, "Clustering result after LPA")
+plotYearGeo <- createPlot(geoYear, "Spectral clustering by \ngeographical information", numGeo, numUsage)
+plotYearUsage <- createPlot(usageYear, "Spectral clustering \nby usage pattern", numGeo, numUsage)
+plotYearSplit <- createPlot(splitYear, "Usage pattern clustering split \nby geographical information", numGeo, numUsage)
+plotYearLPA <- createPlot(relabelYear, "Clustering result after LPA", numGeo, numUsage)
 
 # Save plots -------------------------------------------------------------------
 plots <- mget(ls(pattern="plot"))
