@@ -54,10 +54,16 @@ clusterByGeo <- function(data, numClusters) {
     mutate(from = paste("(", lat, ", ", long, ")", sep = ""), 
            sc = as.factor(sc)) %>%
     select(from, lat, long, weight, sc)
-  return(data)
+  # Track number of nodes per cluster
+  numNodes <- data %>%
+    group_by(sc) %>%
+    summarise(count = n()) 
+  numNodes <- numNodes$count
+  return(list(clusters = data, numNodes = numNodes))
 }
 
-geoYear <- clusterByGeo(dataYear, numClusters = 8)
+numGeo <- 8
+geoYear <- clusterByGeo(dataYear, numClusters = numGeo)
 
 # Use spectral clustering to group by usage pattern ----------------------------
 calculateUsage <- function(data, geoData) {
@@ -91,20 +97,59 @@ calculateUsage <- function(data, geoData) {
 clusterByUsage <- function(data, geoData, numClusters) {
   # Summarize data by usage pattern
   usageData <- calculateUsage(data, geoData) 
-  clusterData <- usageData[-1:-3]
+  data <- usageData[-1:-3]
   # Create groups using spectral clustering
-  sc <- specc(as.matrix(clusterData), centers = numClusters)
-  usageData <- clusterData %>% 
+  sc <- specc(as.matrix(data), centers = numClusters)
+  data <- data %>% 
     mutate(sc = as.factor(sc), 
            lat = usageData$lat,
            long = usageData$long)
-  return(usageData)
+  # Track number of nodes per cluster
+  numNodes <- data %>%
+    group_by(sc) %>%
+    summarise(count = n()) 
+  numNodes <- numNodes$count
+  return(list(clusters = data, numNodes = numNodes))
 }
 
-usageYear <- clusterByUsage(dataYear, geoYear, numClusters = 7)
+numUsage <- 7
+usageYear <- clusterByUsage(dataYear, geoYear$clusters, numClusters = numUsage)
 
-# Cluster splitting ------------------------------------------------------------
-# TO DO
+# Adjust pattern clustering result to obtain numGeo clusters -------------------
+splitClusters <- function(data, numGeo, numUsage) {
+  for (i in 1:(numGeo-numUsage)) {
+    # Find biggest cluster in pattern clustering result
+    max <- which.max(data$numNodes)
+    clusterData <- data$clusters %>%
+      filter(sc == max) %>%
+      mutate(start_lat = lat,
+             start_long = long,
+             from = paste("(", lat, ", ", long, ")", sep = ""))
+    # Use spectral clustering to split it into two based on geographical information
+    clusterData <- clusterByGeo(clusterData, 2)
+    # Combine clustering result with the original pattern clustering result
+    clusterData <- clusterData$clusters
+    clusterData$sc <- as.character(clusterData$sc)
+    clusterData$sc[clusterData$sc == "2"] <- length(data$numNodes)+1
+    clusterData$sc[clusterData$sc == "1"] <- max
+    clusterData <- clusterData %>%
+      select(lat, long, sc)
+    data <- data$clusters %>%
+      filter(sc != max) %>%
+      select(lat, long, sc)
+    data <- rbind(data, clusterData)
+    # Track number of nodes per cluster
+    numNodes <- data %>%
+      group_by(sc) %>%
+      summarise(count = n()) 
+    numNodes <- numNodes$count
+    # Replace original pattern clustering result with new clustering result
+    data <- (list(clusters = data, numNodes = numNodes))
+  } 
+  return(data)
+}
+
+splitYear <- splitClusters(usageYear, numGeo, numUsage)
 
 # Cluster label renewing -------------------------------------------------------
 # TO DO
@@ -119,9 +164,10 @@ createPlot <- function(data, title){
   plot <- ggplot(censusTracts) +
     geom_sf() +
     # Plot clusters
-    geom_point(data = data, aes(x = long, y = lat, color = sc), size = 1) + #Color clusters
+    geom_point(data = data$clusters, aes(x = long, y = lat, color = sc), size = 1) + #Color clusters
     # Label plot
-    scale_color_discrete(name = "Clusters") +
+    scale_color_discrete(name = "Number of Nodes per Cluster", labels = data$numNodes) +
+    guides(color = guide_legend(ncol = 1)) +
     labs(title = title) +
     # Remove gray background
     theme_bw() + 
@@ -134,12 +180,13 @@ createPlot <- function(data, title){
 
 plotYearGeo <- createPlot(geoYear, "Spectral clustering by geographical information")
 plotYearUsage <- createPlot(usageYear, "Spectral clustering by usage pattern")
+plotYearSplit <- createPlot(splitYear, "Usage pattern clustering split by geographical information")
 
 # Save plots -------------------------------------------------------------------
 plots <- mget(ls(pattern="plot"))
 dir <- "/home/marion/PVDResearch/Plots"
 # dir <- "/Users/Alice/Dropbox/pvd_summer"
-filenames <- c("Spectral_clusters_by_geo", "Spectral_clusters_by_usage")
+filenames <- c("Spectral_clusters_by_geo", "Spectral_clusters_by_usage", "Spectral_cluster_by_usage_split")
 paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
 for(i in 1:length(plots)){
