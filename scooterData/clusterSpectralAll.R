@@ -1,6 +1,6 @@
 # Install relevant libraries ---------------------------------------------------
+library(geosphere)
 library(ggplot2)
-library(igraph)
 library(sf)
 library(tidyverse)
 library(tigris)
@@ -52,15 +52,14 @@ clusterByGeo <- function(data, numClusters) {
   # Summarize data by geographical information
   data <- data %>%
     group_by(from) %>%
-    summarise(lat = mean(start_lat), 
-              long = mean(start_long)) %>%
-    select(lat, long)
+    summarise(start_lat = mean(start_lat), 
+              start_long = mean(start_long)) %>%
+    select(start_lat, start_long)
   # Create groups using spectral clustering
   sc <- specc(as.matrix(data), centers = numClusters)
   data <- data %>% 
-    mutate(from = paste("(", lat, ", ", long, ")", sep = ""), 
-           sc = as.factor(sc)) %>%
-    select(from, lat, long, sc)
+    mutate(from = paste("(", start_lat, ", ", start_long, ")", sep = ""), 
+           sc = as.factor(sc)) 
   # Track number of nodes per cluster
   numNodes <- data %>%
     group_by(sc) %>%
@@ -87,16 +86,14 @@ calculateUsage <- function(data, geoData) {
   # Count number of scooters that travel from each start coordinate to each cluster
   data <- data %>%
     group_by(from, end_sc) %>%
-    summarise(lat = mean(start_lat), 
-              long = mean(start_long), 
+    summarise(start_lat = mean(start_lat), 
+              start_long = mean(start_long), 
               count = n()) %>%
     spread(end_sc, count)
   # Replace NA values with 0
   data[is.na(data)] <- 0
   # Convert scooter counts to proportions
   data[-1:-3] <- round(data[-1:-3] / rowSums(data[-1:-3]), digits = 2)
-  # Combine scooter proportions into a single string
-  # data <- unite(data, usage, -from, sep = ", ")
   return(data)
 }
 
@@ -107,11 +104,11 @@ clusterByUsage <- function(data, geoData, numClusters) {
   # Create groups using spectral clustering
   sc <- specc(as.matrix(data), centers = numClusters)
   data <- data %>% 
-    mutate(sc = as.factor(sc), 
-           lat = usageData$lat,
-           long = usageData$long)
+    mutate(start_lat = usageData$start_lat,
+           start_long = usageData$start_long,
+           from = paste("(", start_lat, ", ", start_long, ")", sep = ""),
+           sc = as.factor(sc))
   # Track number of nodes per cluster
-  
   numNodes <- data %>%
     group_by(sc) %>%
     summarise(count = n()) 
@@ -128,10 +125,7 @@ splitClusters <- function(data, numGeo, numUsage) {
     # Find biggest cluster in pattern clustering result
     max <- which.max(data$numNodes)
     clusterData <- data$clusters %>%
-      filter(sc == max) %>%
-      mutate(start_lat = lat,
-             start_long = long,
-             from = paste("(", lat, ", ", long, ")", sep = ""))
+      filter(sc == max) 
     # Use spectral clustering to split it into two based on geographical information
     clusterData <- clusterByGeo(clusterData, 2)
     # Combine clustering result with the original pattern clustering result
@@ -140,10 +134,11 @@ splitClusters <- function(data, numGeo, numUsage) {
     clusterData$sc[clusterData$sc == "2"] <- length(data$numNodes)+1
     clusterData$sc[clusterData$sc == "1"] <- max
     clusterData <- clusterData %>%
-      select(lat, long, sc)
+      mutate(from = paste("(", start_lat, ", ", start_long, ")", sep = "")) %>%
+      select(start_lat, start_long, from, sc)
     data <- data$clusters %>%
       filter(sc != max) %>%
-      select(lat, long, sc)
+      select(start_lat, start_long, from, sc)
     data <- rbind(data, clusterData)
     # Track number of nodes per cluster
     numNodes <- data %>%
@@ -159,10 +154,15 @@ splitClusters <- function(data, numGeo, numUsage) {
 splitYear <- splitClusters(usageYear, numGeo, numUsage)
 
 # Use LPA to make clustering result more reasonable ----------------------------
-g <- graph_from_data_frame(splitYear$clusters[1:2], directed = FALSE)
-labels <- as.numeric(unlist(splitYear$clusters[3]))
-c <- cluster_label_prop(g, initial = labels)
-
+sample <- splitYear$clusters %>%
+  select(start_long, start_lat)
+dist <- as.matrix(distm(sample, sample, distGeo))
+dist <- as.matrix(dist(sample, diag = TRUE, upper = TRUE))
+colnames(dist) <- splitYear$clusters$from
+g <- graph_from_adjacency_matrix(dist, mode = "lower", weighted = TRUE)
+lpa <- cluster_label_prop(g, weights = , initial = splitYear$clusters$sc)
+clusters <- stack(membership(lpa))
+colnames(clusters) <- c("group", "coordinates")
 
 # Plot clusters ----------------------------------------------------------------
 createPlot <- function(data, title){
@@ -174,11 +174,12 @@ createPlot <- function(data, title){
   plot <- ggplot(censusTracts) +
     geom_sf() +
     # Plot clusters
-    geom_point(data = data$clusters, aes(x = long, y = lat, color = sc), size = 1) + #Color clusters
+    geom_point(data = data$clusters, aes(x = start_long, y = start_lat, color = as.factor(sc)), size = 1) + #Color clusters
     # Label plot
     scale_color_discrete(name = "Number of Nodes per Cluster", labels = data$numNodes) +
     guides(color = guide_legend(ncol = 1)) +
-    labs(title = title) +
+    labs(title = title,
+         subtitle = "(with infrequent trips filtered out)") +
     # Remove gray background
     theme_bw() + 
     # Remove grid
@@ -191,12 +192,16 @@ createPlot <- function(data, title){
 plotYearGeo <- createPlot(geoYear, "Spectral clustering by geographical information")
 plotYearUsage <- createPlot(usageYear, "Spectral clustering by usage pattern")
 plotYearSplit <- createPlot(splitYear, "Usage pattern clustering split by geographical information")
+plotYearLPA <- createPlot(ex, "Clustering result after LPA")
 
 # Save plots -------------------------------------------------------------------
 plots <- mget(ls(pattern="plot"))
 dir <- "/home/marion/PVDResearch/Plots"
 # dir <- "/Users/Alice/Dropbox/pvd_summer"
-filenames <- c("Spectral_clusters_by_geo", "Spectral_clusters_by_usage_split", "Spectral_clusters_by_usage")
+filenames <- c("Spectral_clusters_by_geo", 
+               "Spectral_cluster_after_LPA",
+               "Spectral_clusters_by_usage_split", 
+               "Spectral_clusters_by_usage")
 paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
 for(i in 1:length(plots)){
