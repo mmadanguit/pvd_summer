@@ -1,5 +1,6 @@
 # Install relevant libraries ---------------------------------------------------
 library(ggplot2)
+library(igraph)
 library(sf)
 library(tidyverse)
 library(tigris)
@@ -33,7 +34,14 @@ cleanData <- function(data, start_date, end_date) {
            end_long = 0.005*round(end_longitude/0.005, digits = 0),
            from = paste("(", start_lat, ", ", start_long, ")", sep = ""),
            to = paste("(", end_lat, ", ", end_long, ")", sep = "")) %>%
-    select(from, to, start_lat, start_long, end_lat, end_long)
+    # Remove infrequent trips
+    group_by(from, to) %>%
+    summarise(start_lat = mean(start_lat), 
+              start_long = mean(start_long),
+              end_lat = mean(end_lat),
+              end_long = mean(end_long),
+              count = n()) %>%
+    filter(count >= 5)
   return(data)
 }
 
@@ -45,15 +53,14 @@ clusterByGeo <- function(data, numClusters) {
   data <- data %>%
     group_by(from) %>%
     summarise(lat = mean(start_lat), 
-              long = mean(start_long),
-              weight = 0.1*n()) %>%
-    select(lat, long, weight)
+              long = mean(start_long)) %>%
+    select(lat, long)
   # Create groups using spectral clustering
   sc <- specc(as.matrix(data), centers = numClusters)
   data <- data %>% 
     mutate(from = paste("(", lat, ", ", long, ")", sep = ""), 
            sc = as.factor(sc)) %>%
-    select(from, lat, long, weight, sc)
+    select(from, lat, long, sc)
   # Track number of nodes per cluster
   numNodes <- data %>%
     group_by(sc) %>%
@@ -76,7 +83,6 @@ calculateUsage <- function(data, geoData) {
     data$end_sc[index] <- sc
   } 
   # Remove end coordinates that do not correspond to a geographical cluster
-  # HELP: Is there a way to group these in with a nearby cluster so that we don't have to get rid of them?
   data <- data[!is.na(data$end_sc),]
   # Count number of scooters that travel from each start coordinate to each cluster
   data <- data %>%
@@ -105,6 +111,7 @@ clusterByUsage <- function(data, geoData, numClusters) {
            lat = usageData$lat,
            long = usageData$long)
   # Track number of nodes per cluster
+  
   numNodes <- data %>%
     group_by(sc) %>%
     summarise(count = n()) 
@@ -151,8 +158,11 @@ splitClusters <- function(data, numGeo, numUsage) {
 
 splitYear <- splitClusters(usageYear, numGeo, numUsage)
 
-# Cluster label renewing -------------------------------------------------------
-# TO DO
+# Use LPA to make clustering result more reasonable ----------------------------
+g <- graph_from_data_frame(splitYear$clusters[1:2], directed = FALSE)
+labels <- as.numeric(unlist(splitYear$clusters[3]))
+c <- cluster_label_prop(g, initial = labels)
+
 
 # Plot clusters ----------------------------------------------------------------
 createPlot <- function(data, title){
@@ -186,7 +196,7 @@ plotYearSplit <- createPlot(splitYear, "Usage pattern clustering split by geogra
 plots <- mget(ls(pattern="plot"))
 dir <- "/home/marion/PVDResearch/Plots"
 # dir <- "/Users/Alice/Dropbox/pvd_summer"
-filenames <- c("Spectral_clusters_by_geo", "Spectral_clusters_by_usage", "Spectral_cluster_by_usage_split")
+filenames <- c("Spectral_clusters_by_geo", "Spectral_clusters_by_usage_split", "Spectral_clusters_by_usage")
 paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
 for(i in 1:length(plots)){
