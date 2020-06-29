@@ -1,8 +1,7 @@
 library(tidyverse)
 library(sf)
-library(tidycensus)
-library(leaflet)
 library(mapview)
+
 # setwd("~/Documents/github/pvd_summer/")
 # tripsPerTract is imported csv with all trips per tract data
 trips <- tripsPerTract %>% select(c('TRACT','event_time','n')) 
