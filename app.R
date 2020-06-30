@@ -121,7 +121,7 @@ server <- function(input, output) {
         )
       )
       insertUI( #Add a horizontal line
-        selector = '#placeholderConstraint', #Add the line after the placeholderConstraint div
+        selector = '#censusPlaceholderConstraint', #Add the line after the placeholderConstraint div
         ui = tags$hr(id=horizontalId) #This is the horizontal line btw
       )
     }
