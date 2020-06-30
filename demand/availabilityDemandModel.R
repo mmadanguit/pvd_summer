@@ -22,6 +22,7 @@ procInterval <- function(date, dayInt, entry){
   entry: one row from the location data"
   dayStart <- "06:00:00"
   DayEnd <- "22:00:00"
+  lastInt <- dayInt[[length(dayInt)]] # select the previous entry
   if ((entry[["startDate"]] < date) | (entry[["startTime"]] < dayStart)){
     entry[["startTime"]] <- dayStart # bike here before start counting
   }
@@ -30,16 +31,17 @@ procInterval <- function(date, dayInt, entry){
   }
   if (dayInt == is.NULL){ # no data yet
     interval <- list(entry[["startTime"]], entry[["endTime"]])
-    dayInt <- matrix(interval, ncol = 2) # create matrix with interval as 1st item
+    dayInt <- list(interval) # lists of lists!
   }
-  else if (entry[["startTime"]] < dayInt[nrow(a), 2]) { # before last avail ends
-    if (entry[["endTime"]] > dayInt[nrow(a), 2]){ # bike around longer than last
-      dayInt[nrow(a), 2] <- entry[["endTime"]] # extend interval
+  else if (entry[["startTime"]] < lastInt[2]) { # before last avail ends
+    if (entry[["endTime"]] > lastInt[2]){ # bike around longer than last
+      lastInt <- list(lastInt[1], entry[["endTime"]])
+      dayInt[[length(dayInt)]] <- lastInt # extend interval
     } 
   }
   else { # bike arrives after last availability interval
     interval <- list(entry[["startTime"]], entry[["endTime"]])
-    dayInt <- rbind(dayInt, interval)
+    append(dayInt, list(interval)) # add interval to list
   }
   return(dayInt)
 }
@@ -76,14 +78,14 @@ procEntry <- function(intervalData, entry){
     if (dateDataExists(data, entry[['TRACT']], date)){
       
     }
-    procInterval(date, entry)
+    intervals <- procInterval(date, entry)
+    # write data
   }
-  return(dates)
 }
 
 intervalData <- data.frame(TRACT=numeric(), DATE=character(), 
                  INTERVAL=character(), AVAIL=numeric())
 for (i in 1:nrow(locData)){
   row <- locData[i,]
-  procEntry(row)
+  procEntry(intervalData, row)
 }
