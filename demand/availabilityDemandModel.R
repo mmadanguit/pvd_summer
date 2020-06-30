@@ -44,20 +44,46 @@ procInterval <- function(date, dayInt, entry){
   return(dayInt)
 }
 
-proc <- function(entry){
-  # print(entry)
+calcDates <- function(entry){
+  "Generate list of dates for an entry"
   if (entry[["startDate"]] == entry[["endDate"]]){ # only one day
     dates <- list(entry[["startDate"]])
   }
   else { # find days
     dates <- as.character(seq(as.Date(entry[["startDate"]]),
-                                      as.Date(entry[["endDate"]]), by='day'))                            
-  }
-  a <- entry[["startDate"]]
-  b <- entry[["endDate"]]
-  for (date in dates){
-    print(date)
+                              as.Date(entry[["endDate"]]), by='day'))                            
   }
   return(dates)
 }
-apply(locData, 1, proc)
+
+getDateData <- function(intervalData, tract, date){
+  "Load existing interval data if it exists"
+  tractIntData -> filter(intervalData, tract)
+  if (date %in% tractIntData){
+    return(filter(tractIntData, date)$INTERVALS) # intervals for that day
+  }
+  else {
+    return(NA)
+  }
+}
+
+procEntry <- function(intervalData, entry){
+  "Process an entry/AKA row in bike location data"
+  dates <- calcDates(entry)
+  for (date in dates){
+    dateData <- getDateData(data, entry[['TRACT']], date)
+    # see if date exists for that tract
+    if (dateDataExists(data, entry[['TRACT']], date)){
+      
+    }
+    procInterval(date, entry)
+  }
+  return(dates)
+}
+
+intervalData <- data.frame(TRACT=numeric(), DATE=character(), 
+                 INTERVAL=character(), AVAIL=numeric())
+for (i in 1:nrow(locData)){
+  row <- locData[i,]
+  procEntry(row)
+}
