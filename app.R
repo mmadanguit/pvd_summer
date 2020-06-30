@@ -6,7 +6,7 @@ library(tidycensus)
 library(sf)
 library(mapview)
 source('census_data_example.R')
-source('demand/demandModel.R')
+source('demand/dropoffDemandModel.R')
 
 
 ui <- fluidPage(
