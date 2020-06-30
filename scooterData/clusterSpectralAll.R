@@ -5,7 +5,6 @@ library(sf)
 library(tidyverse)
 library(tigris)
 library(kernlab)
-library(modeest)
 
 # Import trip data -------------------------------------------------------------
 dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
