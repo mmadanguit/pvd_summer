@@ -21,7 +21,7 @@ procInterval <- function(date, dayInt, entry){
   dayInt: the current date's availability matrix
   entry: one row from the location data"
   dayStart <- "06:00:00"
-  DayEnd <- "22:00:00"
+  dayEnd <- "22:00:00"
   lastInt <- dayInt[[length(dayInt)]] # select the previous entry
   if ((entry[["startDate"]] < date) | (entry[["startTime"]] < dayStart)){
     entry[["startTime"]] <- dayStart # bike here before start counting
@@ -29,7 +29,7 @@ procInterval <- function(date, dayInt, entry){
   if ((entry[["endDate"]] > date) | (entry[["endTime"]] > dayEnd)){
     entry[["endTime"]] <- dayEnd # bike here after starting counting
   }
-  if (dayInt == is.NULL){ # no data yet
+  if (is.null(dayInt)){ # no data yet
     interval <- list(entry[["startTime"]], entry[["endTime"]])
     dayInt <- list(interval) # lists of lists!
   }
@@ -60,12 +60,17 @@ calcDates <- function(entry){
 
 getDateData <- function(intervalData, tract, date){
   "Load existing interval data if it exists"
-  tractIntData -> filter(intervalData, tract)
+  if (tract %in% intervalData){
+    tractIntData -> filter(intervalData, tract)
+  }
+  else {
+    return(NULL)
+  }
   if (date %in% tractIntData){
     return(filter(tractIntData, date)$INTERVALS) # intervals for that day
   }
   else {
-    return(NA)
+    return(NULL)
   }
 }
 
@@ -73,19 +78,16 @@ procEntry <- function(intervalData, entry){
   "Process an entry/AKA row in bike location data"
   dates <- calcDates(entry)
   for (date in dates){
-    dateData <- getDateData(data, entry[['TRACT']], date)
-    # see if date exists for that tract
-    if (dateDataExists(data, entry[['TRACT']], date)){
-      
-    }
-    intervals <- procInterval(date, entry)
+    dateData <- getDateData(intervalData, entry[['TRACT']], date)
+    intervals <- procInterval(date, dateData, entry)
+    print(intervals)
     # write data
   }
 }
 
 intervalData <- data.frame(TRACT=numeric(), DATE=character(), 
                  INTERVAL=character(), AVAIL=numeric())
-for (i in 1:nrow(locData)){
+for (i in 1:nrow(locData)){ # for each row
   row <- locData[i,]
   procEntry(intervalData, row)
 }
