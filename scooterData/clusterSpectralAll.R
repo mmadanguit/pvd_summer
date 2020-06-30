@@ -6,6 +6,10 @@ library(tidyverse)
 library(tigris)
 library(kernlab)
 
+# Declare number of groups to create in initial and secondary clustering -------
+numGeo <- 10
+numUsage <- 7
+
 # Import trip data -------------------------------------------------------------
 dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
 # dir <- "/Users/Alice/Documents"
@@ -73,7 +77,6 @@ clusterByGeo <- function(data, numClusters) {
   return(list(clusters = data, numNodes = numNodes))
 }
 
-numGeo <- 8
 geoYear <- clusterByGeo(dataYear, numClusters = numGeo)
 
 # Use spectral clustering to group by usage pattern ----------------------------
@@ -118,7 +121,6 @@ clusterByUsage <- function(data, geoData, numClusters) {
   return(list(clusters = data, numNodes = numNodes))
 }
 
-numUsage <- 7
 usageYear <- clusterByUsage(dataYear, geoYear$clusters, numClusters = numUsage)
 
 # Adjust pattern clustering result to obtain numGeo clusters -------------------
