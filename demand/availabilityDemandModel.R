@@ -24,24 +24,22 @@ procInterval <- function(date, dayInt, entry){
   dayEnd <- "22:00:00"
   lastInt <- dayInt[[length(dayInt)]] # select the previous entry
   if ((entry[["startDate"]] < date) | (entry[["startTime"]] < dayStart)){
-    entry[["startTime"]] <- dayStart # bike here before start counting
+    entry[["startTime"]] <- dayStart # start time to day start
   }
   if ((entry[["endDate"]] > date) | (entry[["endTime"]] > dayEnd)){
-    entry[["endTime"]] <- dayEnd # bike here after starting counting
+    entry[["endTime"]] <- dayEnd # end time to day end
   }
-  if (is.null(dayInt)){ # no data yet
+  if (is.null(dayInt)){
     interval <- list(entry[["startTime"]], entry[["endTime"]])
-    dayInt <- list(interval) # lists of lists!
+    dayInt <- list(interval) # initialize with interval
   }
-  else if (entry[["startTime"]] < lastInt[2]) { # before last avail ends
-    if (entry[["endTime"]] > lastInt[2]){ # bike around longer than last
+  else if ((entry[["startTime"]] < lastInt[2]) & (entry[["endTime"]] > lastInt[2])){s
       lastInt <- list(lastInt[1], entry[["endTime"]])
       dayInt[[length(dayInt)]] <- lastInt # extend interval
-    } 
   }
-  else { # bike arrives after last availability interval
+  else if (entry[["startTime"]] > lastInt[2]){
     interval <- list(entry[["startTime"]], entry[["endTime"]])
-    append(dayInt, list(interval)) # add interval to list
+    append(dayInt, list(interval))  # new interval
   }
   return(dayInt)
 }
@@ -74,6 +72,11 @@ getDateData <- function(intervalData, tract, date){
   }
 }
 
+writeIntervalData <- function(intervalData, intervals){
+  # if the data entry already exists, replace it
+  # otherwise create a new row
+}
+
 procEntry <- function(intervalData, entry){
   "Process an entry/AKA row in bike location data"
   dates <- calcDates(entry)
@@ -81,12 +84,13 @@ procEntry <- function(intervalData, entry){
     dateData <- getDateData(intervalData, entry[['TRACT']], date)
     intervals <- procInterval(date, dateData, entry)
     print(intervals)
-    # write data
+    writeIntervalData(intervalData, intervals)
   }
 }
 
 intervalData <- data.frame(TRACT=numeric(), DATE=character(), 
                  INTERVAL=character(), AVAIL=numeric())
+
 for (i in 1:nrow(locData)){ # for each row
   row <- locData[i,]
   procEntry(intervalData, row)
