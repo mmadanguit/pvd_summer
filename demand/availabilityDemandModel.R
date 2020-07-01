@@ -41,6 +41,7 @@ procInterval <- function(date, intervals, entry){
     interval <- list(entry[["startTime"]], entry[["endTime"]])
     append(intervals, list(interval))    # new interval
   }
+  intervals <-
   return(intervals)
 }
 
@@ -58,23 +59,24 @@ calcDates <- function(entry){
 
 getDateData <- function(intervalData, tract, date){
   "Load existing interval data if it exists"
-  if (tract %in% intervalData){
-    tractIntData -> filter(intervalData, tract)
-  }
-  else {
+  if (!(tract %in% intervalData$TRACT)){
     return(NULL)
   }
-  if (date %in% tractIntData){
-    return(filter(tractIntData, date)$INTERVALS) # intervals for that day
-  }
-  else {
+  tractIntData <- filter(intervalData, TRACT == tract)
+  if (!(date %in% tractIntData$DATE)){
     return(NULL)
   }
+  return(filter(tractIntData, DATE == date)$INTERVALS) # intervals for that day 
 }
 
-writeIntervalData <- function(intervalData, intervals){
-  # if the data entry already exists, replace it
-  # otherwise create a new row
+saveIntervalData <- function(df, tract, date, intervals){
+  if (date %in% filter(df, TRACT == tract)$DATE){
+    df$INTERVALS[df$TRACT==tract & df$DATE==date] <- intervals # update intervals
+  }
+  else {
+    df <- df %>% add_row(TRACT = tract, DATE = date, INTERVALS = intervals) # add row
+  }
+  return(df)
 }
 
 procEntry <- function(intervalData, entry){
@@ -83,15 +85,15 @@ procEntry <- function(intervalData, entry){
   for (date in dates){
     dateData <- getDateData(intervalData, entry[['TRACT']], date)
     intervals <- procInterval(date, dateData, entry)
-    print(intervals)
-    writeIntervalData(intervalData, intervals)
+    intervalData <- saveIntervalData(intervalData, entry[['TRACT']], date, intervals)
   }
+  return(intervalData)
 }
 
-intervalData <- data.frame(TRACT=numeric(), DATE=character(), 
-                 INTERVAL=character(), AVAIL=numeric())
+intervalData <- data.frame(TRACT=numeric(), DATE=character(), AVAIL=numeric())
+intervalData$INTERVALS <- list() # some reason needs to be seperate
 
 for (i in 1:nrow(locData)){ # for each row
   row <- locData[i,]
-  procEntry(intervalData, row)
+  intervalData <- procEntry(intervalData, row)
 }
