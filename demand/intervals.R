@@ -93,8 +93,6 @@ procEntry <- function(intervalData, entry){
   "Process an entry/AKA row in bike location data"
   dates <- calcDates(entry)
   for (date in dates){
-    print(date)
-    print(dates)
     dateData <- getDateData(intervalData, entry[['TRACT']], date)
     entryDate <- dateConstrain(entry, date, dates)
     intervals <- procInterval(entryDate, dateData)
@@ -105,12 +103,16 @@ procEntry <- function(intervalData, entry){
 }
 
 getIntervalData <- function(locData){
-  intervalData <- data.frame(TRACT=numeric(), DATE=character(), AVAIL=numeric())
+  intervalData <- data.frame(TRACT=numeric(), DATE=character())
   intervalData$INTERVALS <- list() # some reason needs to be seperate
-  
   for (i in 1:nrow(locData)){ # for each row
     row <- locData[i,]
     intervalData <- procEntry(intervalData, row)
   }
+  intervalData$START <- unlist(lapply(intervalData$INTERVALS, '[', 1))
+  intervalData$END <- unlist(lapply(intervalData$INTERVALS, '[', 2))
+  intervalData$AVAIL <- difftime(paste(intervalData$DATE, intervalData$END),
+                                 paste(intervalData$DATE, intervalData$START))
+  intervalData <- intervalData %>% select(-c(INTERVALS))
   return(intervalData)
 }
