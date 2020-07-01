@@ -18,4 +18,5 @@ locData <- locData %>% select(-c(start_time, end_time)) %>%
   add_column(startDate = start[,1], endDate = end[,1], 
              startTime = start[,2], endTime = end[,2])
 
+locData <- locData %>% filter(TRACT == 35)
 intervalData <- getIntervalData(locData)

@@ -1,30 +1,26 @@
-procInterval <- function(date, intervals, entry){
-  "date: the date being analyzed for availability
-  intervals: the current date's availability matrix
-  entry: one row from the location data"
-  dayStart <- "06:00:00"
-  dayEnd <- "22:00:00"
-  lastVal <- intervals[[length(intervals)]]
-  if ((entry[["startDate"]] < date) | (entry[["startTime"]] < dayStart)){
-    entry[["startTime"]] <- dayStart    # start time to day start
+dayStart <<- "06:00:00"
+dayEnd <<- "22:00:00"
+getDateData <- function(intervalData, tract, date){
+  "Load existing interval data if it exists"
+  if (!(tract %in% intervalData$TRACT)){
+    return(NULL)
   }
-  if ((entry[["endDate"]] > date) | (entry[["endTime"]] > dayEnd)){
-    entry[["endTime"]] <- dayEnd    # end time to day end
+  tractIntData <- filter(intervalData, TRACT == tract)
+  if (!(date %in% tractIntData$DATE)){
+    return(NULL)
   }
+  return(filter(tractIntData, DATE == date)$INTERVALS) # intervals for that day 
+}
+
+saveIntervalData <- function(df, tract, date, intervals){
   if (is.null(intervals)){
-    interval <- list(entry[["startTime"]], entry[["endTime"]])
-    intervals <- list(interval)    # initialize with interval
+    return(df)
   }
-  else if ((entry[["startTime"]] < lastVal[2]) & (entry[["endTime"]] > lastVal[2])){
-    lastVal <- list(lastVal[1], entry[["endTime"]])
-    intervals[[length(intervals)]] <- lastVal     # extend interval
+  if (date %in% filter(df, TRACT == tract)$DATE){ # exists
+    df <- df %>% filter(TRACT != tract | DATE != date)
   }
-  else if (entry[["startTime"]] > lastVal[2]){
-    interval <- list(entry[["startTime"]], entry[["endTime"]])
-    append(intervals, list(interval))    # new interval
-  }
-  intervals <-
-    return(intervals)
+  df <- df %>% add_row(TRACT = tract, DATE = date, INTERVALS = intervals) # add row
+  return(df)
 }
 
 calcDates <- function(entry){
@@ -39,34 +35,70 @@ calcDates <- function(entry){
   return(dates)
 }
 
-getDateData <- function(intervalData, tract, date){
-  "Load existing interval data if it exists"
-  if (!(tract %in% intervalData$TRACT)){
-    return(NULL)
+dateConstrain <- function(entry, date, dates){
+  "Create a new entry for that day"
+  if (length(dates) == 1){
+    return(entry)
   }
-  tractIntData <- filter(intervalData, TRACT == tract)
-  if (!(date %in% tractIntData$DATE)){
-    return(NULL)
+  if (date == dates[[1]]){ # first
+    entry[["endTime"]] <- dayEnd
   }
-  return(filter(tractIntData, DATE == date)$INTERVALS) # intervals for that day 
+  else if (date == dates[[length(dates)]]){ # last
+    entry[["startTime"]] <- "00:00:00"
+  }
+  else { # middle 
+    entry[["startTime"]] <- dayStart
+    entry[["endTime"]] <- dayEnd
+  }
+  return(entry)
 }
 
-saveIntervalData <- function(df, tract, date, intervals){
-  if (date %in% filter(df, TRACT == tract)$DATE){
-    df$INTERVALS[df$TRACT==tract & df$DATE==date] <- intervals # update intervals
+timeConstrain <- function(entry, dayStart, dayEnd){
+  "Constrain the entry to day start and end"
+  if (entry[["startTime"]] < dayStart){
+    entry[["startTime"]] <- dayStart    # start time to day start
   }
-  else {
-    df <- df %>% add_row(TRACT = tract, DATE = date, INTERVALS = intervals) # add row
+  if (entry[["endTime"]] > dayEnd){
+    entry[["endTime"]] <- dayEnd    # end time to day end
   }
-  return(df)
+  return(entry)
+}
+
+procInterval <- function(entry, intervals){
+  "intervals: the current date's availability matrix
+  entry: one row from the location data"
+  entry <-  timeConstrain(entry, dayStart, dayEnd)
+  lastVal <- intervals[[length(intervals)]]
+  if ((entry[["endTime"]] < dayStart) | (entry[["startTime"]] > dayEnd)){
+    # not within time bounds
+  }
+  else if (is.null(intervals)){
+    interval <- list(entry[["startTime"]], entry[["endTime"]])
+    intervals <- list(interval)    # initialize with interval
+  }
+  else if (entry[["endTime"]] > lastVal[[2]]){
+    if (entry[["startTime"]] < lastVal[[2]]) {
+      intervals[[length(intervals)]] <- NULL
+      interval <- list(lastVal[[1]], entry[["endTime"]])  # extended interval
+    }
+    else {
+      interval <- list(entry[["startTime"]], entry[["endTime"]])  # new interval
+    }
+    intervals <- append(intervals, list(interval)) 
+  }
+  return(intervals)
 }
 
 procEntry <- function(intervalData, entry){
   "Process an entry/AKA row in bike location data"
   dates <- calcDates(entry)
   for (date in dates){
+    print(date)
+    print(dates)
     dateData <- getDateData(intervalData, entry[['TRACT']], date)
-    intervals <- procInterval(date, dateData, entry)
+    entryDate <- dateConstrain(entry, date, dates)
+    intervals <- procInterval(entryDate, dateData)
+    # print(intervals)
     intervalData <- saveIntervalData(intervalData, entry[['TRACT']], date, intervals)
   }
   return(intervalData)
