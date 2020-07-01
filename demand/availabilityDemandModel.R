@@ -16,32 +16,32 @@ locData <- locData %>% select(-c(start_time, end_time)) %>%
   add_column(startDate = start[,1], endDate = end[,1], 
              startTime = start[,2], endTime = end[,2])
 
-procInterval <- function(date, dayInt, entry){
+procInterval <- function(date, intervals, entry){
   "date: the date being analyzed for availability
-  dayInt: the current date's availability matrix
+  intervals: the current date's availability matrix
   entry: one row from the location data"
   dayStart <- "06:00:00"
   dayEnd <- "22:00:00"
-  lastInt <- dayInt[[length(dayInt)]] # select the previous entry
+  lastVal <- intervals[[length(intervals)]]
   if ((entry[["startDate"]] < date) | (entry[["startTime"]] < dayStart)){
-    entry[["startTime"]] <- dayStart # start time to day start
+    entry[["startTime"]] <- dayStart    # start time to day start
   }
   if ((entry[["endDate"]] > date) | (entry[["endTime"]] > dayEnd)){
-    entry[["endTime"]] <- dayEnd # end time to day end
+    entry[["endTime"]] <- dayEnd    # end time to day end
   }
-  if (is.null(dayInt)){
+  if (is.null(intervals)){
     interval <- list(entry[["startTime"]], entry[["endTime"]])
-    dayInt <- list(interval) # initialize with interval
+    intervals <- list(interval)    # initialize with interval
   }
-  else if ((entry[["startTime"]] < lastInt[2]) & (entry[["endTime"]] > lastInt[2])){s
-      lastInt <- list(lastInt[1], entry[["endTime"]])
-      dayInt[[length(dayInt)]] <- lastInt # extend interval
+  else if ((entry[["startTime"]] < lastVal[2]) & (entry[["endTime"]] > lastVal[2])){
+      lastVal <- list(lastVal[1], entry[["endTime"]])
+      intervals[[length(intervals)]] <- lastVal     # extend interval
   }
-  else if (entry[["startTime"]] > lastInt[2]){
+  else if (entry[["startTime"]] > lastVal[2]){
     interval <- list(entry[["startTime"]], entry[["endTime"]])
-    append(dayInt, list(interval))  # new interval
+    append(intervals, list(interval))    # new interval
   }
-  return(dayInt)
+  return(intervals)
 }
 
 calcDates <- function(entry){
