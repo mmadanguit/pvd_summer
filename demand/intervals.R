@@ -105,16 +105,20 @@ procEntry <- function(intervalData, entry){
 fillClean <- function(intervalData, period){
   # Fill in days that do not exist in the data at all wwith NAs
   tracts <- unique(intervalData$TRACT)
-  ignore <- list()
+  notInAll <- list()
   for (date in period) {
     if (!(date %in% intervalData$DATE)){
-      intervalData <- intervalData %>% add_row(TRACT = tracts, DATE = date, AVAIL = NA)
-      ignore <- append(ignore, date)
+      notInAll <- append(notInAll, date)
     }
   }
-  period <- period[!(period %in% ignore)]
-  intervalData <- intervalData %>% complete(nesting(TRACT), 
+  print(notInAll)
+  period <- period[!(period %in% notInAll)]
+  print(period)
+  intervalData <- intervalData %>% complete(nesting(TRACT),
     DATE = period, fill = list(START=NA, END=NA, AVAIL=0))
+  for (date in notInAll) {
+    intervalData <- intervalData %>% add_row(TRACT = tracts, DATE = date, AVAIL = NA)
+  }
   return(intervalData)
 }
 
