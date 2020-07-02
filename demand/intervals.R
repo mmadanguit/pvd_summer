@@ -102,8 +102,29 @@ procEntry <- function(intervalData, entry){
   return(intervalData)
 }
 
-getIntervalData <- function(locData){
-  intervalData <- data.frame(TRACT=numeric(), DATE=character())
+fillClean <- function(intervalData, period){
+  # Fill in days that do not exist in the data at all wwith NAs
+  tracts <- unique(intervalData$TRACT)
+  ignore <- list()
+  for (date in period) {
+    if (!(date %in% intervalData$DATE)){
+      intervalData <- intervalData %>% add_row(TRACT = tracts, DATE = date, AVAIL = NA)
+      ignore <- append(ignore, date)
+    }
+  }
+  for (i in 1:length(period)) {
+    if (period[[i]] %in% ignore){
+      period[[i]] <- ""
+    }
+    print(period)
+  }
+  intervalData <- intervalData %>% complete(nesting(TRACT), 
+    DATE = period, fill = list(START=NA, END=NA, AVAIL=0))
+  return(intervalData)
+}
+
+getIntervalData <- function(locData, period){
+  intervalData <- tibble(TRACT=numeric(), DATE=character())
   intervalData$INTERVALS <- list() # some reason needs to be seperate
   for (i in 1:nrow(locData)){ # for each row
     row <- locData[i,]
@@ -114,5 +135,5 @@ getIntervalData <- function(locData){
   intervalData$AVAIL <- difftime(paste(intervalData$DATE, intervalData$END),
                                  paste(intervalData$DATE, intervalData$START))
   intervalData <- intervalData %>% select(-c(INTERVALS))
-  return(intervalData)
+  return(fillClean(intervalData, period))
 }
