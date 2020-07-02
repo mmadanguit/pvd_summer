@@ -96,28 +96,20 @@ procEntry <- function(intervalData, entry){
     dateData <- getDateData(intervalData, entry[['TRACT']], date)
     entryDate <- dateConstrain(entry, date, dates)
     intervals <- procInterval(entryDate, dateData)
-    # print(intervals)
     intervalData <- saveIntervalData(intervalData, entry[['TRACT']], date, intervals)
   }
   return(intervalData)
 }
 
 fillClean <- function(intervalData, period){
-  # Fill in days that do not exist in the data at all wwith NAs
-  tracts <- unique(intervalData$TRACT)
-  notInAll <- list()
-  for (date in period) {
-    if (!(date %in% intervalData$DATE)){
-      notInAll <- append(notInAll, date)
-    }
-  }
-  print(notInAll)
-  period <- period[!(period %in% notInAll)]
-  print(period)
+  "Fill in missing data with NAs, missing per tract with zeros"
+  noDataDays <- period[!(period %in% intervalData$DATE)] # no data
+  period <- period[!(period %in% noDataDays)]
   intervalData <- intervalData %>% complete(nesting(TRACT),
     DATE = period, fill = list(START=NA, END=NA, AVAIL=0))
-  for (date in notInAll) {
-    intervalData <- intervalData %>% add_row(TRACT = tracts, DATE = date, AVAIL = NA)
+  for (date in noDataDays) {
+    intervalData <- intervalData %>% 
+      add_row(TRACT = unique(intervalData$TRACT), DATE = date, AVAIL = NA)
   }
   return(intervalData)
 }
