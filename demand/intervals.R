@@ -112,12 +112,7 @@ fillClean <- function(intervalData, period){
       ignore <- append(ignore, date)
     }
   }
-  for (i in 1:length(period)) {
-    if (period[[i]] %in% ignore){
-      period[[i]] <- ""
-    }
-    print(period)
-  }
+  period <- period[!(period %in% ignore)]
   intervalData <- intervalData %>% complete(nesting(TRACT), 
     DATE = period, fill = list(START=NA, END=NA, AVAIL=0))
   return(intervalData)
