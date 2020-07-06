@@ -9,17 +9,21 @@ library(kernlab)
 # Declare number of groups to create in initial and secondary clustering -------
 numGeo <- 10
 numUsage <- 7
+neighbors <- 8
+neighborCutoff <- 5
 
 # Import trip data -------------------------------------------------------------
-dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
+# dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
 # dir <- "/Users/Alice/Documents"
+dir <- "/Users/nolan/Documents"
 filename <- "tripsYear1WithTracts"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
 
 # Import census tract data -----------------------------------------------------
-dir <- "/home/marion/PVDResearch/PVDResearch/censusData"
+# dir <- "/home/marion/PVDResearch/PVDResearch/censusData"
 # dir <- "/Users/Alice/Dropbox/pvd_summer/censusData"
+dir <- "./censusData"
 filename <- "riData"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
@@ -171,15 +175,17 @@ relabelClusters <- function(data) {
   relabeledData <- data$clusters
   # Loop through each coordinate node
   for (i in 1:nrow(data$clusters)) {
-    # Determine 10 nearest nodes (neighbors)
-    neighbors <- 10
+    # Determine 8 nearest nodes (neighbors), which will be the 4 cardinal directions and 4 corners around points that are surrounded by other points
     ind <- sort(dist[,i], na.last = TRUE, index.return = TRUE)$ix
-    ind <- ind[1:neighbors]
+    ind <- ind[1:neighbors] 
     # Determine most common cluster label of neighbors
     cluster <- data$clusters[ind,] %>%
       summarise(mode = mode(sc))
-    # Relabel selected node based on neighbors
-    relabeledData$sc[i] <- cluster[[1]]
+    neighborNodes <- data$clusters[ind,] #Get the rows of the neighbors from the original data
+    if(nrow(neighborNodes %>% filter(sc==as.integer(cluster)))>=neighborCutoff){ #If the number of neighbors with the same cluster as the mode is above the neighbor cutoff value,
+      # Relabel selected node based on neighbors
+      relabeledData$sc[i] <- cluster[[1]]
+    }
   }
   # Count number of nodes per cluster
   numNodes <- numNodes(relabeledData)
@@ -220,8 +226,9 @@ plotYearLPA <- createPlot(relabelYear, "Clustering result after LPA", numGeo, nu
 
 # Save plots -------------------------------------------------------------------
 plots <- mget(ls(pattern="plot"))
-dir <- "/home/marion/PVDResearch/Plots"
+# dir <- "/home/marion/PVDResearch/Plots"
 # dir <- "/Users/Alice/Dropbox/pvd_summer"
+dir <- "/Users/nolan/Dropbox/pvd_summer_plots"
 filenames <- c("Spectral_clusters_by_geo", 
                "Spectral_cluster_after_LPA",
                "Spectral_clusters_by_usage_split", 
