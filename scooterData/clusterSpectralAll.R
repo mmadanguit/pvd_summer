@@ -6,24 +6,28 @@ library(tidyverse)
 library(tigris)
 library(kernlab)
 
+# Import similarity evaluation function ----------------------------------------
+path <- "/home/marion/PVDResearch/PVDResearch/scooterData/"
+source(paste(path, "clusterSpectralEvaluate.R", sep = ""))
+
 # Declare number of groups to create in initial and secondary clustering -------
-numGeo <- 10
+numGeo <- 8
 numUsage <- 7
 neighbors <- 8
 neighborCutoff <- 5
 
 # Import trip data -------------------------------------------------------------
-# dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
+dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
 # dir <- "/Users/Alice/Documents"
-dir <- "/Users/nolan/Documents"
+# dir <- "/Users/nolan/Documents"
 filename <- "tripsYear1WithTracts"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
 
 # Import census tract data -----------------------------------------------------
-# dir <- "/home/marion/PVDResearch/PVDResearch/censusData"
+dir <- "/home/marion/PVDResearch/PVDResearch/censusData"
 # dir <- "/Users/Alice/Dropbox/pvd_summer/censusData"
-dir <- "./censusData"
+# dir <- "./censusData"
 filename <- "riData"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
@@ -78,7 +82,11 @@ clusterByGeo <- function(data, numClusters) {
            sc = as.factor(sc)) 
   # Count number of nodes per cluster
   numNodes <- numNodes(data)
-  return(list(clusters = data, numNodes = numNodes))
+  # Calculate intra-cluster similarity
+  clustersGeo <- data %>% 
+    select(start_long, start_lat, sc)
+  sim <- round(calculateSim(clustersGeo, numClusters), digits = 3)
+  return(list(clusters = data, numNodes = numNodes, sim = sim))
 }
 
 geoYear <- clusterByGeo(dataYear, numClusters = numGeo)
@@ -122,7 +130,11 @@ clusterByUsage <- function(data, geoData, numClusters) {
            sc = as.factor(sc))
   # Count number of nodes per cluster
   numNodes <- numNodes(data)
-  return(list(clusters = data, numNodes = numNodes))
+  # Calculate intra-cluster similarity
+  clustersUsage <- data %>% 
+    select(1:10, sc)
+  sim <- round(calculateSim(clustersUsage, numClusters), digits = 3)
+  return(list(clusters = data, numNodes = numNodes, sim = sim))
 }
 
 usageYear <- clusterByUsage(dataYear, geoYear$clusters, numClusters = numUsage)
@@ -153,7 +165,11 @@ splitClusters <- function(data, numGeo, numUsage) {
     # Replace original pattern clustering result with new clustering result
     data <- (list(clusters = data, numNodes = numNodes))
   } 
-  return(data)
+  # Calculate intra-cluster similarity
+  clustersGeo <- data$clusters %>% 
+    select(start_long, start_lat, sc)
+  sim <- round(calculateSim(clustersGeo, numGeo), digits = 4)
+  return(list(clusters = data$clusters, numNodes = data$numNodes, sim = sim))
 }
 
 splitYear <- splitClusters(usageYear, numGeo, numUsage)
@@ -189,7 +205,11 @@ relabelClusters <- function(data) {
   }
   # Count number of nodes per cluster
   numNodes <- numNodes(relabeledData)
-  return(list(clusters = relabeledData, numNodes = numNodes))
+  # Calculate intra-cluster similarity
+  clustersGeo <- relabeledData %>% 
+    select(start_long, start_lat, sc)
+  sim <- round(calculateSim(clustersGeo, numGeo), digits = 4)
+  return(list(clusters = relabeledData, numNodes = numNodes, sim = sim))
 }
 
 relabelYear <- relabelClusters(splitYear)
@@ -209,7 +229,8 @@ createPlot <- function(data, title, numGeo, numUsage){
     scale_color_discrete(name = "Nodes per Cluster", labels = data$numNodes) +
     guides(color = guide_legend(ncol = 2)) +
     labs(title = title,
-         subtitle = paste("numGeo =", numGeo, "and numUsage =", numUsage)) +
+         subtitle = paste("numGeo =", numGeo, "and numUsage =", numUsage,
+                          "\nintra-cluster similarity =", data$sim)) +
     # Remove gray background
     theme_bw() + 
     # Remove grid
@@ -226,13 +247,13 @@ plotYearLPA <- createPlot(relabelYear, "Clustering result after LPA", numGeo, nu
 
 # Save plots -------------------------------------------------------------------
 plots <- mget(ls(pattern="plot"))
-# dir <- "/home/marion/PVDResearch/Plots"
+dir <- "/home/marion/PVDResearch/Plots"
 # dir <- "/Users/Alice/Dropbox/pvd_summer"
-dir <- "/Users/nolan/Dropbox/pvd_summer_plots"
-filenames <- c("Spectral_clusters_by_geo", 
-               "Spectral_cluster_after_LPA",
-               "Spectral_clusters_by_usage_split", 
-               "Spectral_clusters_by_usage")
+# dir <- "/Users/nolan/Dropbox/pvd_summer_plots"
+filenames <- c("Spectral_clusters_by_geo_8", 
+               "Spectral_cluster_after_LPA_8",
+               "Spectral_clusters_by_usage_split_8", 
+               "Spectral_clusters_by_usage_8")
 paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
 for(i in 1:length(plots)){
