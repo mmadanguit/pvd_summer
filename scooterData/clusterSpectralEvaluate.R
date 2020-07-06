@@ -2,10 +2,6 @@
 path <- "/home/marion/PVDResearch/PVDResearch/scooterData/"
 source(paste(path, "clusterSpectralAll.R", sep = ""))
 
-# Declare max number of clusters to create and measure -------------------------
-numGeo <- 25
-numUsage <- numGeo-1
-
 # Calculate intra-cluster similarity using Euclidean distance ------------------
 calculateSim <- function(clusters, numClusters, coord) {
   # Initialize vector to store each cluster's average distance
@@ -52,6 +48,7 @@ calculateSimGeo <- function(numTrials, numGeo) {
   return(data)
 }
 
+numGeo <- 25
 dataGeo <- calculateSimGeo(10, numGeo)
 
 # Calculate intra-cluster similarity for multiple numUsage values -----------------
@@ -76,7 +73,17 @@ calculateSimUsage <- function(numTrials, numGeo, numUsage) {
   return(data)
 }
 
-dataUsage <- calculateSimUsage(20, numGeo = 14, numUsage)
+numGeo <- 6
+numUsage <- numGeo-1
+dataUsage_6 <- calculateSimUsage(20, numGeo, numUsage)
+
+numGeo <- 7
+numUsage <- numGeo-1
+dataUsage_7 <- calculateSimUsage(20, numGeo, numUsage)
+
+numGeo <- 8
+numUsage <- numGeo-1
+dataUsage_8 <- calculateSimUsage(20, numGeo, numUsage)
 
 # Plot intra-cluster similarity vs number of clusters --------------------------
 createPlot <- function(data, type) {
@@ -89,8 +96,12 @@ createPlot <- function(data, type) {
 }
 
 plotGeo <- createPlot(dataGeo, "numGeo")
-plotUsage <- createPlot(dataUsage, "numUsage") +
-  labs(subtitle = "Using Euclidean distance to measure intra-cluster similarity and numGeo = 14")
+plotUsage_6 <- createPlot(dataUsage_6, "numUsage") +
+  labs(subtitle = paste("Using Euclidean distance to measure intra-cluster similarity and numGeo = 6"))
+plotUsage_7 <- createPlot(dataUsage_7, "numUsage") +
+  labs(subtitle = paste("Using Euclidean distance to measure intra-cluster similarity and numGeo = 7"))
+plotUsage_8 <- createPlot(dataUsage_8, "numUsage") +
+  labs(subtitle = paste("Using Euclidean distance to measure intra-cluster similarity and numGeo = 8"))
 
 # Save plot --------------------------------------------------------------------
 dir <- "/home/marion/PVDResearch/Plots"
@@ -98,6 +109,14 @@ filename <- "Finding_the_optimal_numGeo_value_using_euclidean"
 path <- file.path(dir, paste(filename, ".png", sep = ""))
 ggsave(path, plotGeo)
 
-filename <- "Finding_the_optimal_numUsage_value_using_euclidean"
+filename <- "Finding_the_optimal_numUsage_value_using_euclidean_6"
 path <- file.path(dir, paste(filename, ".png", sep = ""))
-ggsave(path, plotUsage)
+ggsave(path, plotUsage_6)
+
+filename <- "Finding_the_optimal_numUsage_value_using_euclidean_7"
+path <- file.path(dir, paste(filename, ".png", sep = ""))
+ggsave(path, plotUsage_7)
+
+filename <- "Finding_the_optimal_numUsage_value_using_euclidean_8"
+path <- file.path(dir, paste(filename, ".png", sep = ""))
+ggsave(path, plotUsage_8)
