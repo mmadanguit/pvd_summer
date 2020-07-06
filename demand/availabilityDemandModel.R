@@ -17,5 +17,6 @@ end <- str_split_fixed(locData$end_time, " ", 2)
 locData <- locData %>% select(-c(start_time, end_time)) %>% 
   add_column(startDate = start[,1], endDate = end[,1], 
              startTime = start[,2], endTime = end[,2])
-
-intervalData <- getIntervalData(locData)
+period <- as.character(
+  seq(as.Date("2019-10-22"), as.Date("2019-11-8"), by = "day"))
+intervalData <- getIntervalData(locData, period)

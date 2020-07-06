@@ -96,14 +96,26 @@ procEntry <- function(intervalData, entry){
     dateData <- getDateData(intervalData, entry[['TRACT']], date)
     entryDate <- dateConstrain(entry, date, dates)
     intervals <- procInterval(entryDate, dateData)
-    # print(intervals)
     intervalData <- saveIntervalData(intervalData, entry[['TRACT']], date, intervals)
   }
   return(intervalData)
 }
 
-getIntervalData <- function(locData){
-  intervalData <- data.frame(TRACT=numeric(), DATE=character())
+fillClean <- function(intervalData, period){
+  "Fill in missing data with NAs, missing per tract with zeros"
+  noDataDays <- period[!(period %in% intervalData$DATE)] # no data
+  period <- period[!(period %in% noDataDays)]
+  intervalData <- intervalData %>% complete(nesting(TRACT),
+    DATE = period, fill = list(START=NA, END=NA, AVAIL=0))
+  for (date in noDataDays) {
+    intervalData <- intervalData %>% 
+      add_row(TRACT = unique(intervalData$TRACT), DATE = date, AVAIL = NA)
+  }
+  return(intervalData)
+}
+
+getIntervalData <- function(locData, period){
+  intervalData <- tibble(TRACT=numeric(), DATE=character())
   intervalData$INTERVALS <- list() # some reason needs to be seperate
   for (i in 1:nrow(locData)){ # for each row
     row <- locData[i,]
@@ -114,5 +126,5 @@ getIntervalData <- function(locData){
   intervalData$AVAIL <- difftime(paste(intervalData$DATE, intervalData$END),
                                  paste(intervalData$DATE, intervalData$START))
   intervalData <- intervalData %>% select(-c(INTERVALS))
-  return(intervalData)
+  return(fillClean(intervalData, period))
 }
