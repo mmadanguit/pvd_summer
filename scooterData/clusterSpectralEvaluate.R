@@ -76,7 +76,7 @@ calculateSimUsage <- function(numTrials, numGeo, numUsage) {
   return(data)
 }
 
-dataUsage <- calculateSimUsage(10, numGeo = 14, numUsage)
+dataUsage <- calculateSimUsage(20, numGeo = 14, numUsage)
 
 # Plot intra-cluster similarity vs number of clusters --------------------------
 createPlot <- function(data, type) {
