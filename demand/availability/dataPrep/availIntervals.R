@@ -1,5 +1,39 @@
-dayStart <<- "06:00:00"
-dayEnd <<- "22:00:00"
+library(tidyverse)
+
+## LOCATION INTAKE ##
+clean <- function(df){
+  "Selects only the location data needed"
+  df <- df %>% select(-c(provider, vehicle_status, vehicle_status_reason, 
+                         device_type, areas, lat, lng)) %>% # remove unwanted columns
+    arrange(TRACT) %>% group_by(TRACT) %>% 
+    arrange(start_time, .by_group = TRUE) %>%
+    filter(TRACT <= 37)
+  return(df)
+}
+
+splitTimeCol <- function(df){
+  "Splits the data columns into seperate day and time"
+  start <- str_split_fixed(df$start_time, " ", 2)
+  end <- str_split_fixed(df$end_time, " ", 2)
+  df <- df %>% select(-c(start_time, end_time)) %>% 
+    add_column(startDate = start[,1], endDate = end[,1], 
+               startTime = start[,2], endTime = end[,2])
+  return(df)
+}
+
+## ANALYSIS FUNCTIONS - UNUSED IN MAIN CODE##
+dailySampSize <- function(df){
+  "Find the daily sample size for the dataframe and plot"
+  sampSize <- df %>% group_by(startDate) %>% 
+    summarize(startDate, n()) %>% distinct() %>%
+    rename(SAMP = 'n()', DATE = 'startDate')
+  sampSize$DATE <- as.Date(sampSize$DATE)
+  sampSizeP <- ggplot(data=sampSize, aes(x=DATE, y=SAMP)) + geom_point() + 
+    scale_x_date(date_label = "%b/%Y", date_breaks = "1 month")
+  return(sampSizeP)
+}
+
+## INTERVAL CALCULATIONS ##
 getDateData <- function(intervalData, tract, date){
   "Load existing interval data if it exists"
   if (!(tract %in% intervalData$TRACT)){
@@ -128,3 +162,16 @@ getIntervalData <- function(locData, period){
   intervalData <- intervalData %>% select(-c(INTERVALS))
   return(fillClean(intervalData, period))
 }
+
+## RUN CODE ##
+setwd("~/Documents/github/pvd_summer/demand") # change to your WD
+dayStart <<- "06:00:00"
+dayEnd <<- "22:00:00"
+period <- as.character(seq(
+  as.Date("2019-4-1"), as.Date("2019-10-31"), by = "day"))
+# prep loc data
+locData <- locations_and_tract_and_rounded_latlong_from_oct18_oct19 %>%
+  clean() %>% splitTimeCol()
+  filter((startDate %in% period) & (endDate %in% period)) # restrict to period
+ # compute intervals
+intervalData <- getIntervalData(locData, period)

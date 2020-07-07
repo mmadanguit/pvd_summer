@@ -1,28 +1,6 @@
 library(tidyverse)
-library(sf)
-library(mapview)
 source("intervals.R")
-# setwd("~/Documents/github/pvd_summer/demand")
-
-clean <- function(df){
-  "Selects only the location data needed"
-  df <- df %>% select(-c(provider, vehicle_status, vehicle_status_reason, 
-              device_type, areas, lat, lng)) %>% # remove unwanted columns
-    arrange(TRACT) %>% group_by(TRACT) %>% 
-    arrange(start_time, .by_group = TRUE) %>%
-    filter(TRACT <= 37)
-  return(df)
-}
-
-splitTimeCol <- function(df){
-  "Splits the data columns into seperate day and time"
-  start <- str_split_fixed(df$start_time, " ", 2)
-  end <- str_split_fixed(df$end_time, " ", 2)
-  df <- df %>% select(-c(start_time, end_time)) %>% 
-    add_column(startDate = start[,1], endDate = end[,1], 
-               startTime = start[,2], endTime = end[,2])
-  return(df)
-}
+setwd("~/Documents/github/pvd_summer/demand") # change to your WD
 
 dailySampSize <- function(df){
   "Find the daily sample size for the dataframe and plot"
