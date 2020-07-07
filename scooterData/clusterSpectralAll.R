@@ -177,10 +177,10 @@ splitClusters <- function(data, numGeo, numUsage) {
   data$clusters <- merge(data$clusters, 
                          select(original, -c(start_lat, start_long, sc)), 
                          by = "from")
-  # Calculate intra-cluster similarity based on geographic information and usage pattern
-  clustersBoth <- data$clusters %>% 
-    select(-c(from))
-  sim <- round(calculateSim(clustersBoth, numGeo), digits = 3)
+  # Calculate intra-cluster similarity based on usage pattern
+  clustersUsage <- data$clusters %>% 
+    select(-c(start_lat, start_long, from))
+  sim <- round(calculateSim(clustersUsage, numGeo), digits = 3)
   return(list(clusters = data$clusters, numNodes = data$numNodes, sim = sim))
 }
 
@@ -218,14 +218,42 @@ relabelClusters <- function(data, numGeo, neighbors, neighborCutoff) {
   }
   # Count number of nodes per cluster
   numNodes <- numNodes(relabeledData)
-  # Calculate intra-cluster similarity based on geographic information and usage pattern
-  clustersBoth <- relabeledData %>% 
-    select(-c(from))
-  sim <- round(calculateSim(clustersBoth, numGeo), digits = 3)
+  # Calculate intra-cluster similarity based on usage pattern
+  clustersUsage <- relabeledData %>% 
+    select(-c(start_lat, start_long, from))
+  sim <- round(calculateSim(clustersUsage, numGeo), digits = 3)
   return(list(clusters = relabeledData, numNodes = numNodes, sim = sim))
 }
 
 relabelYear <- relabelClusters(splitYear, numGeo, neighbors, neighborCutoff)
+
+# Loop through clustering steps to minimize intra-cluster similarity -----------
+# Initialize similarity value and trial number 
+sim <- 1
+numTrial <- 0
+# Initialize vector to store similarity values
+simValues <- c()
+while (numTrial < 100) { # Run through no more than 100 trials 
+  numTrial <- numTrial+1
+  # Run through clustering steps
+  geo <- clusterByGeo(dataYear, numGeo)
+  usage <- clusterByUsage(dataYear, geo$clusters, numUsage)
+  split <- splitClusters(usage, numGeo, numUsage)
+  relabel <- relabelClusters(split, numGeo, neighbors, neighborCutoff)
+  # Store clustering result only if similarity value is less than all previous similarity values
+  if (relabelYear$sim < sim) {
+    sim <- relabelYear$sim
+    geoYear <- geo
+    usageYear <- usage
+    splitYear <- split
+    relabelYear <- relabel
+  }
+  # Leave while loop once no smaller similarity value can be achieved
+  simValues[numTrial] <- sim
+  if (length(simValues) > 30 & var(tail(simValues, 15)) == 0) {
+    numTrial <- 100
+  }
+}
 
 # Plot clusters ----------------------------------------------------------------
 createPlot <- function(data, title, numGeo, numUsage){
