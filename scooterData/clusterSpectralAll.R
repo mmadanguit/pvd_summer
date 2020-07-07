@@ -6,13 +6,16 @@ library(tidyverse)
 library(tigris)
 library(kernlab)
 
-# Import similarity evaluation function ----------------------------------------
+# Import relevant functions ----------------------------------------------------
 path <- "/home/marion/PVDResearch/PVDResearch/scooterData/"
 source(paste(path, "clusterSpectralEvaluate.R", sep = ""))
 
-# Declare number of groups to create in initial and secondary clustering -------
+# Declare global variables -----------------------------------------------------
+# Declare number of groups to create in geographic clustering
 numGeo <- 8
-numUsage <- 7
+# Declare number of groups to create in usage pattern clustering
+numUsage <- 6
+# Declare number of neighboring nodes required to relabel a cluster
 neighbors <- 8
 neighborCutoff <- 5
 
@@ -35,18 +38,19 @@ assign(filename, read.csv(path))
 # Clean and filter trip data ---------------------------------------------------
 cleanData <- function(data, start_date, end_date) {
   data <- data %>%
+    # Consider only trips that last at least 3 minutes
     filter(minutes >= 3) %>% 
     # Select time range
     mutate(start_time = as.POSIXct(start_time, tz = "EST")) %>%
     filter(start_time > start_date & start_time < end_date) %>%
-    # Round coordinates
+    # Round coordinates to the nearest 5/1000 place
     mutate(start_lat = 0.005*round(start_latitude/0.005, digits = 0),
            start_long = 0.005*round(start_longitude/0.005, digits = 0),
            end_lat = 0.005*round(end_latitude/0.005, digits = 0),
            end_long = 0.005*round(end_longitude/0.005, digits = 0),
            from = paste("(", start_lat, ", ", start_long, ")", sep = ""),
            to = paste("(", end_lat, ", ", end_long, ")", sep = "")) %>%
-    # Remove infrequent trips
+    # Consider only trips that occurred at least 5 times 
     group_by(from, to) %>%
     summarise(start_lat = mean(start_lat), 
               start_long = mean(start_long),
@@ -59,7 +63,7 @@ cleanData <- function(data, start_date, end_date) {
 
 dataYear <- cleanData(tripsYear1WithTracts, start_date = "2018-10-17", end_date = "2019-09-19")
 
-# Use spectral clustering to group by geographical information -----------------
+# Use spectral clustering to group by geographic information -------------------
 numNodes <- function(data) {
   # Count number of nodes per cluster
   numNodes <- data %>%
@@ -69,7 +73,7 @@ numNodes <- function(data) {
 }
 
 clusterByGeo <- function(data, numClusters) {
-  # Summarize data by geographical information
+  # Summarize data by geographic information for clustering
   data <- data %>%
     group_by(from) %>%
     summarise(start_lat = mean(start_lat), 
@@ -82,18 +86,18 @@ clusterByGeo <- function(data, numClusters) {
            sc = as.factor(sc)) 
   # Count number of nodes per cluster
   numNodes <- numNodes(data)
-  # Calculate intra-cluster similarity
+  # Calculate intra-cluster similarity based on geographic information
   clustersGeo <- data %>% 
     select(start_long, start_lat, sc)
   sim <- round(calculateSim(clustersGeo, numClusters), digits = 3)
   return(list(clusters = data, numNodes = numNodes, sim = sim))
 }
 
-geoYear <- clusterByGeo(dataYear, numClusters = numGeo)
+geoYear <- clusterByGeo(dataYear, numGeo)
 
 # Use spectral clustering to group by usage pattern ----------------------------
 calculateUsage <- function(data, geoData) {
-  # Map trip data to geographical clusters
+  # Map trip data to geographic clusters
   data$end_sc <- NA
   for (i in 1:nrow(geoData)) {
     coord <- geoData[i,]$from
@@ -101,7 +105,7 @@ calculateUsage <- function(data, geoData) {
     ind <- which(data$to == coord)
     data$end_sc[ind] <- sc
   } 
-  # Remove end coordinates that do not correspond to a geographical cluster
+  # Remove trips whose end coordinates do not correspond to a geographic cluster
   data <- data[!is.na(data$end_sc),]
   # Count number of scooters that travel from each start coordinate to each cluster
   data <- data %>%
@@ -118,9 +122,11 @@ calculateUsage <- function(data, geoData) {
 }
 
 clusterByUsage <- function(data, geoData, numClusters) {
-  # Summarize data by usage pattern
+  # Summarize data by usage pattern for clustering
   usageData <- calculateUsage(data, geoData) 
-  data <- usageData[-1:-3]
+  data <- usageData %>%
+    ungroup() %>%
+    select(-c(from, start_long, start_lat))
   # Create groups using spectral clustering
   sc <- specc(as.matrix(data), centers = numClusters)
   data <- data %>% 
@@ -130,17 +136,19 @@ clusterByUsage <- function(data, geoData, numClusters) {
            sc = as.factor(sc))
   # Count number of nodes per cluster
   numNodes <- numNodes(data)
-  # Calculate intra-cluster similarity
+  # Calculate intra-cluster similarity based on usage pattern
   clustersUsage <- data %>% 
-    select(1:10, sc)
+    select(-c(start_lat, start_long, from))
   sim <- round(calculateSim(clustersUsage, numClusters), digits = 3)
   return(list(clusters = data, numNodes = numNodes, sim = sim))
 }
 
-usageYear <- clusterByUsage(dataYear, geoYear$clusters, numClusters = numUsage)
+usageYear <- clusterByUsage(dataYear, geoYear$clusters, numUsage)
 
 # Adjust pattern clustering result to obtain numGeo clusters -------------------
 splitClusters <- function(data, numGeo, numUsage) {
+  # Keep for later use
+  original <- data$clusters
   for (i in 1:(numGeo-numUsage)) {
     # Find biggest cluster in pattern clustering result
     max <- which.max(data$numNodes)
@@ -165,10 +173,14 @@ splitClusters <- function(data, numGeo, numUsage) {
     # Replace original pattern clustering result with new clustering result
     data <- (list(clusters = data, numNodes = numNodes))
   } 
-  # Calculate intra-cluster similarity
-  clustersGeo <- data$clusters %>% 
-    select(start_long, start_lat, sc)
-  sim <- round(calculateSim(clustersGeo, numGeo), digits = 4)
+  # Merge usage pattern data with cluster data for similarity calculation
+  data$clusters <- merge(data$clusters, 
+                         select(original, -c(start_lat, start_long, sc)), 
+                         by = "from")
+  # Calculate intra-cluster similarity based on geographic information and usage pattern
+  clustersBoth <- data$clusters %>% 
+    select(-c(from))
+  sim <- round(calculateSim(clustersBoth, numGeo), digits = 3)
   return(list(clusters = data$clusters, numNodes = data$numNodes, sim = sim))
 }
 
@@ -181,7 +193,7 @@ mode <- function(x) {
   return(ux[which.max(tabulate(match(x, ux)))])
 }
 
-relabelClusters <- function(data) {
+relabelClusters <- function(data, numGeo, neighbors, neighborCutoff) {
   # Create distance matrix from coordinate nodes
   coord <- data$clusters %>%
     select(start_long, start_lat)
@@ -191,28 +203,29 @@ relabelClusters <- function(data) {
   relabeledData <- data$clusters
   # Loop through each coordinate node
   for (i in 1:nrow(data$clusters)) {
-    # Determine 8 nearest nodes (neighbors), which will be the 4 cardinal directions and 4 corners around points that are surrounded by other points
+    # Determine 8 nearest nodes (neighbors), which for most, will be the 4 cardinal directions and 4 corners around points that are surrounded by other points
     ind <- sort(dist[,i], na.last = TRUE, index.return = TRUE)$ix
     ind <- ind[1:neighbors] 
+    # Get the rows of the neighbors from the original data
+    neighborNodes <- data$clusters[ind,]
     # Determine most common cluster label of neighbors
-    cluster <- data$clusters[ind,] %>%
-      summarise(mode = mode(sc))
-    neighborNodes <- data$clusters[ind,] #Get the rows of the neighbors from the original data
-    if(nrow(neighborNodes %>% filter(sc==as.integer(cluster)))>=neighborCutoff){ #If the number of neighbors with the same cluster as the mode is above the neighbor cutoff value,
+    cluster <- mode(neighborNodes$sc)
+    # If the number of neighbors with the same cluster as the mode is above the neighbor cutoff value,
+    if (nrow(neighborNodes %>% filter(sc == as.integer(cluster))) >= neighborCutoff) { 
       # Relabel selected node based on neighbors
-      relabeledData$sc[i] <- cluster[[1]]
+      relabeledData$sc[i] <- as.integer(cluster)
     }
   }
   # Count number of nodes per cluster
   numNodes <- numNodes(relabeledData)
-  # Calculate intra-cluster similarity
-  clustersGeo <- relabeledData %>% 
-    select(start_long, start_lat, sc)
-  sim <- round(calculateSim(clustersGeo, numGeo), digits = 4)
+  # Calculate intra-cluster similarity based on geographic information and usage pattern
+  clustersBoth <- relabeledData %>% 
+    select(-c(from))
+  sim <- round(calculateSim(clustersBoth, numGeo), digits = 3)
   return(list(clusters = relabeledData, numNodes = numNodes, sim = sim))
 }
 
-relabelYear <- relabelClusters(splitYear)
+relabelYear <- relabelClusters(splitYear, numGeo, neighbors, neighborCutoff)
 
 # Plot clusters ----------------------------------------------------------------
 createPlot <- function(data, title, numGeo, numUsage){
@@ -224,13 +237,13 @@ createPlot <- function(data, title, numGeo, numUsage){
   plot <- ggplot(censusTracts) +
     geom_sf() +
     # Plot clusters
-    geom_point(data = data$clusters, aes(x = start_long, y = start_lat, color = as.factor(sc)), size = 1) + #Color clusters
+    geom_point(data = data$clusters, aes(x = start_long, y = start_lat, color = as.factor(sc)), size = 2) + #Color clusters
     # Label plot
     scale_color_discrete(name = "Nodes per Cluster", labels = data$numNodes) +
     guides(color = guide_legend(ncol = 2)) +
     labs(title = title,
          subtitle = paste("numGeo =", numGeo, "and numUsage =", numUsage,
-                          "\nintra-cluster similarity =", data$sim)) +
+                          "\navgSimilarity =", data$sim)) +
     # Remove gray background
     theme_bw() + 
     # Remove grid
