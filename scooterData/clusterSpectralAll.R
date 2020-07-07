@@ -201,12 +201,19 @@ createPlot <- function(data, title, numGeo, numUsage){
     select(GEOID) %>%
     filter(GEOID %in% riData$GEOID)
   # Plot clusters over map of census tracts
-  plot <- ggplot(censusTracts) +
+  convex <- chull(data$clusters)
+  convex_points <- data$clusters[convex,]
+  print(class(convex_points))
+  # convex <- data$clusters
+  plot <- ggplot(censusTracts, group = data$clusters$sc) +
     geom_sf() +
     # Plot clusters
-    geom_point(data = data$clusters, aes(x = start_long, y = start_lat, color = as.factor(sc)), size = 1) + #Color clusters
+    geom_point(data = data$clusters, aes(x = start_long, y = start_lat, fill = as.factor(sc)), size = 1.5, shape = 21) + #Color clusters
+    # geom_point(data = data$clusters, aes(x = start_long, y = start_lat, color = as.factor(sc)), size = 10, shape = 15, alpha = 0.5) + #Color clusters
     # Label plot
     scale_color_discrete(name = "Nodes per Cluster", labels = data$numNodes) +
+    scale_fill_discrete(name = "Nodes per Cluster", labels = data$numNodes) +
+    
     guides(color = guide_legend(ncol = 2)) +
     labs(title = title,
          subtitle = paste("numGeo =", numGeo, "and numUsage =", numUsage)) +
@@ -216,25 +223,36 @@ createPlot <- function(data, title, numGeo, numUsage){
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
     # Rotate x axis labels
     theme(axis.text.x = element_text(angle = 90))
+    # geom_polygon(data = convex_points, aes(x = start_long, y = start_lat, color = as.factor(sc)), alpha = 0.5)
+    for (i in levels(data$clusters$sc)){
+      cluster <- data$clusters %>% filter(sc==i)
+      convex <- chull(cluster)
+      convex_points <- cluster[convex,]
+      # print(convex_points)
+      # print(i)
+      # print(as.factor(convex_points$sc))
+      plot <- plot + geom_polygon(data = convex_points, aes(x = start_long, y = start_lat, fill = as.factor(sc)), color = "black", alpha = 0.5)
+    }
   return(plot)
 }
 
-plotYearGeo <- createPlot(geoYear, "Spectral clustering by \ngeographical information", numGeo, numUsage)
-plotYearUsage <- createPlot(usageYear, "Spectral clustering \nby usage pattern", numGeo, numUsage)
-plotYearSplit <- createPlot(splitYear, "Usage pattern clustering split \nby geographical information", numGeo, numUsage)
+# plotYearGeo <- createPlot(geoYear, "Spectral clustering by \ngeographical information", numGeo, numUsage)
+# plotYearUsage <- createPlot(usageYear, "Spectral clustering \nby usage pattern", numGeo, numUsage)
+# plotYearSplit <- createPlot(splitYear, "Usage pattern clustering split \nby geographical information", numGeo, numUsage)
 plotYearLPA <- createPlot(relabelYear, "Clustering result after LPA", numGeo, numUsage)
-
+# plotYearSplit
+plotYearLPA
 # Save plots -------------------------------------------------------------------
-plots <- mget(ls(pattern="plot"))
-# dir <- "/home/marion/PVDResearch/Plots"
-# dir <- "/Users/Alice/Dropbox/pvd_summer"
-dir <- "/Users/nolan/Dropbox/pvd_summer_plots"
-filenames <- c("Spectral_clusters_by_geo", 
-               "Spectral_cluster_after_LPA",
-               "Spectral_clusters_by_usage_split", 
-               "Spectral_clusters_by_usage")
-paths <- file.path(dir, paste(filenames, ".png", sep = ""))
-
-for(i in 1:length(plots)){
-  invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
-}
+# plots <- mget(ls(pattern="plot"))
+# # dir <- "/home/marion/PVDResearch/Plots"
+# # dir <- "/Users/Alice/Dropbox/pvd_summer"
+# dir <- "/Users/nolan/Dropbox/pvd_summer_plots"
+# filenames <- c("Spectral_clusters_by_geo", 
+#                "Spectral_cluster_after_LPA",
+#                "Spectral_clusters_by_usage_split", 
+#                "Spectral_clusters_by_usage")
+# paths <- file.path(dir, paste(filenames, ".png", sep = ""))
+# 
+# for(i in 1:length(plots)){
+#   invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
+# }
