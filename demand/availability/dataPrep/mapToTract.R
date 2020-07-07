@@ -10,7 +10,7 @@ getTracts <- function(state){
 
 convCoord <- function(lng, lat, censusTracts){
   "Convert coordinates to same CRS as census tracts"
-  coords <- data.frame(lng, lat) %>%
+  coords <- tibble(lng, lat) %>%  
     st_as_sf(coords = c("lng", "lat"), crs = st_crs(censusTracts))
   return(coords)
 }
@@ -21,7 +21,9 @@ mapCoord <- function(df, tracts){
   censusTracts: tracts of the region"
   mappedTracts <- convCoord(df$lng, df$lat, tracts) %>% # get right format
     st_join(tracts) # find tracts
-  df <- mutate(df, GEOID = mappedTracts$GEOID, TRACT = as.numeric(mappedTracts$TRACT))
+  print(mappedTracts)
+  df <- mutate(df, GEOID = mappedTracts$GEOID, 
+               TRACT = as.numeric(mappedTracts$TRACT))
   return(df)
 }
 
