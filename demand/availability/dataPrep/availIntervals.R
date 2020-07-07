@@ -79,8 +79,8 @@ calcDates <- function(entry){
 dateConstrain <- function(entry, date, dates){
   "Create a new entry for that day"
   if (length(dates) == 1){
-    return(entry)
   }
+    return(entry)
   if (date == dates[[1]]){ # first
     entry[["endTime"]] <- dayEnd
   }
