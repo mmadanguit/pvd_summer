@@ -1,6 +1,6 @@
 library(tidyverse)
 
-## LOCATION INTAKE ##
+## LOCATION DATA INTAKE ##
 clean <- function(df){
   "Selects only the location data needed"
   df <- df %>% select(-c(provider, vehicle_status, vehicle_status_reason, 
@@ -164,7 +164,7 @@ getIntervalData <- function(locData, period){
 }
 
 ## RUN CODE ##
-setwd("~/Documents/github/pvd_summer/demand") # change to your WD
+
 dayStart <<- "06:00:00"
 dayEnd <<- "22:00:00"
 period <- as.character(seq(
