@@ -16,6 +16,7 @@ numUsage <- 8 # Number of groups to create in usage pattern clustering
 neighbors <- 8 # Number of neighboring nodes to based relabeling off of 
 
 seed <- 50 # Set random seed based on clusterSpectralDetermineRandom.R
+# seed <- 2
 set.seed(seed)
 
 # Import trip data -------------------------------------------------------------
@@ -247,24 +248,33 @@ relabelClusters <- function(data, numGeo, neighbors) {
     # Get neighbor node data
     neighborClusters <- data$clusters[ind,]
     neighborDist <- round(dist[ind,i])
+    totalNeighborDistances <- numeric(10)
     # Create vector of neighbor node clusters such that frequency corresponds to the distance of that neighbor to the chosen coordinate node
-    neighborNodes <- c()
+    # neighborNodes <- c()
     for (j in 1:neighbors) {
-      neighborNodes <- c(neighborNodes, rep.int(c(neighborClusters$sc[j]), neighborDist[j]))
+      # neighborNodes <- c(neighborNodes, rep.int(c(neighborClusters$sc[j]), neighborDist[j]))
+      totalNeighborDistances[neighborClusters$sc[j]] <- totalNeighborDistances[neighborClusters$sc[j]] + 1/neighborDist[j]
     }
+    # print(totalNeighborDistances)
+    # print(neighborNodes)
     # Determine most common cluster label of neighbors
-    cluster <- mode(neighborNodes)
+    # cluster <- mode(neighborNodes)
+    cluster <- which.max(totalNeighborDistances)
+    if(as.integer(tail(table(totalNeighborDistances), n=1)) = 1){
+      relabeledData$sc[i] <- as.numeric(cluster)
+    }
+    # print(which.max(totalNeighborDistances))
     # Relabel selected node based on neighbors
-    relabeledData$sc[i] <- as.numeric(cluster)
+    # relabeledData$sc[i] <- as.numeric(cluster)
   }
   # Count number of nodes per cluster
   numNodes <- numNodes(relabeledData)
   # Relabel clusters in case some labels were lost in relabeling process
-  if (length(numNodes) < numGeo) {
+  # if (length(numNodes) < numGeo) {
     relabeledData$sc <- factor(relabeledData$sc, labels = 1:length(numNodes))
-  }
+  # }
   # Group outliers in with cluster most similar based on usage pattern
-  relabeledData <- handleOutliers(relabeledData, numNodes, dist, neighbors)
+  # relabeledData <- handleOutliers(relabeledData, numNodes, dist, neighbors)
   # Recount number of nodes per cluster
   numNodes <- numNodes(relabeledData)
   # Calculate intra-cluster similarity based on usage pattern
@@ -324,19 +334,19 @@ plotYearUsage <- createPlot(usageYear, "Spectral clustering \nby usage pattern",
 plotYearSplit <- createPlot(splitYear, "Usage pattern clustering split \nby geographical information", numGeo, numUsage)
 plotYearLPA <- createPlot(relabelYear, "Clustering result after LPA", numGeo, numUsage)
 # plotYearSplit
-# plotYearLPA
+plotYearLPA
 # Save plots -------------------------------------------------------------------
 
-plots <- mget(ls(pattern="plot"))
-dir <- "/home/marion/PVDResearch/Plots"
-# dir <- "/Users/Alice/Dropbox/pvd_summer"
-# dir <- "/Users/nolan/Dropbox/pvd_summer_plots"
-filenames <- c("Spectral_clusters_by_geo_10", 
-               "Spectral_cluster_after_LPA_10",
-               "Spectral_clusters_by_usage_split_10", 
-               "Spectral_clusters_by_usage_10")
-paths <- file.path(dir, paste(filenames, ".png", sep = ""))
-
-for(i in 1:length(plots)){
-  invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
-}
+# plots <- mget(ls(pattern="plot"))
+# dir <- "/home/marion/PVDResearch/Plots"
+# # dir <- "/Users/Alice/Dropbox/pvd_summer"
+# # dir <- "/Users/nolan/Dropbox/pvd_summer_plots"
+# filenames <- c("Spectral_clusters_by_geo_10", 
+#                "Spectral_cluster_after_LPA_10",
+#                "Spectral_clusters_by_usage_split_10", 
+#                "Spectral_clusters_by_usage_10")
+# paths <- file.path(dir, paste(filenames, ".png", sep = ""))
+# 
+# for(i in 1:length(plots)){
+#   invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
+# }

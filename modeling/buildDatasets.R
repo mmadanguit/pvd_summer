@@ -24,9 +24,9 @@ tripData <- tripsYear1WithTracts %>%
          time = format(start_time, format = "%H:%M:%S")) %>%
   # Determine whether date is a weekday or a weekend
   mutate(day = weekdays(date),
-         weekday = ifelse(day == "Saturday" | day == "Sunday", 0, 1)) %>%
+         weekday = as.factor(ifelse(day == "Saturday" | day == "Sunday", 0, 1))) %>%
   # Determine what season date is in
-  mutate(season = as.numeric(factor(quarters(date+31), labels = c(1, 2, 3, 4)))) %>%
+  mutate(season = factor(quarters(date+31), labels = c(1, 2, 3, 4))) %>%
   # Round coordinates to the nearest 5/1000 place
   mutate(start_lat = 0.005*round(start_latitude/0.005, digits = 0),
          start_long = 0.005*round(start_longitude/0.005, digits = 0),
@@ -38,8 +38,8 @@ tripData <- tripsYear1WithTracts %>%
 weatherData <- clean_weather_dataset %>%
   # Convert date to Date object
   mutate(date = as.Date(DATE)) %>%
-  # Select average wind speed, precipitation, and average temperature
-  select(date, AWND, PRCP, TAVG)
+  # Select average wind speed, precipitation, snow, and average temperature
+  select(date, AWND, PRCP, SNOW, TAVG)
 
 # Merge data sets --------------------------------------------------------------
 features <- merge(tripData, weatherData, by = "date")
@@ -54,8 +54,11 @@ data <- features %>%
             PRCP = mean(PRCP),
             TAVG = mean(TAVG),
             count = n()) 
-# Determine last-time-slot count
-data$last_count = c(0, data$count[-length(data$count)])
+# Create a last_count column that stores the count from the previous time slot
+data$last_count <- c(0, data$count[-length(data$count)]) 
+# Make last_count zero at the start of every day
+indStart <- match(unique(data$date), data$date)
+data$last_count[indStart] <- 0
 
 # Split data into train and test data sets -------------------------------------
 # Randomly select 75% of the dates to put into the train data set
@@ -70,7 +73,7 @@ testData <- filter(data, date %in% testDates)
 
 # Save data sets ---------------------------------------------------------------
 datasets <- list(features, trainData, testData)
-dir <- "/home/marion/PVDResearch/Data/predictionData"
+dir <- "/home/marion/PVDResearch/Data/modelingData"
 filenames <- c("features", "trainData", "testData")
 paths <- file.path(dir, paste(filenames, ".csv", sep = ""))
 
