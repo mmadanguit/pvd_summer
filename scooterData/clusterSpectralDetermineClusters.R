@@ -15,7 +15,7 @@ calculateSimGeo <- function(numTrials, numGeo) {
       clustersGeo <- clustersGeo %>% 
         select(start_long, start_lat, sc)
       # Calculate average intra-cluster similarity over all clusters
-      sim <- calculateSim(clustersGeo, j)
+      sim <- avgSim(clustersGeo, j)
       data[j-1, i+1] <- sim
     }
   }
@@ -41,7 +41,7 @@ calculateSimUsage <- function(numTrials, numGeo, numUsage) {
       clustersUsage <- clustersUsage %>% 
         select(-c(start_lat, start_long, from))
       # Calculate average distance over all clusters
-      sim <- calculateSim(clustersUsage, j)
+      sim <- avgSim(clustersUsage, j)
       data[j-1, i+1] <- sim
     }
   }
