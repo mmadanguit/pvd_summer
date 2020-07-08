@@ -8,6 +8,7 @@ filterLoc <- function(df){
   filter(difftime(end_time, start_time, units = "mins") > 1)
   return(df)
 }
+
 cleanLoc <- function(df){
   "Selects only the location data needed"
   df <- df %>% select(-c(provider, vehicle_status, vehicle_status_reason, 

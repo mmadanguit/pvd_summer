@@ -24,8 +24,14 @@ postClean <- function(df){
   return(df)
 }
 
+fill <- function(df, period){
+  "Fill in missing information with zeros"
+  df <- df %>% group_by(TRACT) %>% 
+          complete(nesting(TRACT), DATE = period, fill = list(TRIPS=0))
+  return(df)
+}
 
-file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/events2019.csv"
+file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/events2018.csv"
 
 pickups <- read_csv(file) %>%
   splitTimeCol() %>%
@@ -33,10 +39,13 @@ pickups <- read_csv(file) %>%
   mapToTract() %>%
   postClean()
 
+period <- as.character(seq(
+  as.Date("2018-1-01"), as.Date("2018-12-31"), by = "day"))
 pickupsSummary <- pickups %>% 
   group_by(TRACT) %>% 
   group_by(DATE, .add=TRUE) %>% 
   summarize(DATE, TRIPS=n(), .groups="keep") %>% # for each day in each tract
-  distinct()
+  distinct() %>%
+  fill(period)
 
-# save?
+write.csv(pickupsSummary, "~/Downloads/pickupsSummary2018.csv")
