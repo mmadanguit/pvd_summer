@@ -10,14 +10,13 @@ library(kernlab)
 path <- "/home/marion/PVDResearch/PVDResearch/scooterData/"
 source(paste(path, "clusterSpectralEvaluate.R", sep = ""))
 
-# Declare global variables -----------------------------------------------------
-# Declare number of groups to create in geographic clustering
-numGeo <- 8
-# Declare number of groups to create in usage pattern clustering
-numUsage <- 6
-# Declare number of neighboring nodes required to relabel a cluster
-neighbors <- 8
-neighborCutoff <- 5
+# Set clustering parameters ----------------------------------------------------
+numGeo <- 10 # Number of groups to create in geographic clustering
+numUsage <- 8 # Number of groups to create in usage pattern clustering
+neighbors <- 8 # Number of neighboring nodes to based relabeling off of 
+
+seed <- 50 # Set random seed based on clusterSpectralDetermineRandom.R
+set.seed(seed)
 
 # Import trip data -------------------------------------------------------------
 dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
@@ -89,7 +88,7 @@ clusterByGeo <- function(data, numClusters) {
   # Calculate intra-cluster similarity based on geographic information
   clustersGeo <- data %>% 
     select(start_long, start_lat, sc)
-  sim <- round(calculateSim(clustersGeo, numClusters), digits = 3)
+  sim <- round(avgSim(clustersGeo, numClusters), digits = 3)
   return(list(clusters = data, numNodes = numNodes, sim = sim))
 }
 
@@ -139,7 +138,7 @@ clusterByUsage <- function(data, geoData, numClusters) {
   # Calculate intra-cluster similarity based on usage pattern
   clustersUsage <- data %>% 
     select(-c(start_lat, start_long, from))
-  sim <- round(calculateSim(clustersUsage, numClusters), digits = 3)
+  sim <- round(avgSim(clustersUsage, numClusters), digits = 3)
   return(list(clusters = data, numNodes = numNodes, sim = sim))
 }
 
@@ -180,7 +179,7 @@ splitClusters <- function(data, numGeo, numUsage) {
   # Calculate intra-cluster similarity based on usage pattern
   clustersUsage <- data$clusters %>% 
     select(-c(start_lat, start_long, from))
-  sim <- round(calculateSim(clustersUsage, numGeo), digits = 3)
+  sim <- round(avgSim(clustersUsage, numGeo), digits = 3)
   return(list(clusters = data$clusters, numNodes = data$numNodes, sim = sim))
 }
 
@@ -193,7 +192,46 @@ mode <- function(x) {
   return(ux[which.max(tabulate(match(x, ux)))])
 }
 
-relabelClusters <- function(data, numGeo, neighbors, neighborCutoff) {
+handleOutliers <- function(data, numNodes, distMatrix, neighbors) {
+  # Find outliers 
+  outliers <- which(numNodes <= 2)
+  # If outliers exist, 
+  if (length(outliers) > 0) {
+    # Loop through each outlier cluster
+    for (k in 1:length(outliers)) {
+      # Loop through each node in the outlier cluster
+      outlierNodes <- which(data$sc == outliers[k])
+      for (l in 1:length(outlierNodes)) {
+        # Determine 8 nearest nodes (neighbors)
+        ind <- sort(distMatrix[,outlierNodes[l]], na.last = TRUE, index.return = TRUE)$ix
+        ind <- ind[1:neighbors] 
+        # Get neighbor node cluster labels
+        neighborClusters <- unique(data$sc[ind]) 
+        neighborClusters <- neighborClusters[neighborClusters != outliers[k]]
+        # Loop through each neighbor cluster
+        sim <- 1
+        bestCluster <- outliers[k]
+        for (m in 1:length(neighborClusters)) {
+          # Add outlier node to neighbor cluster
+          newData <- data
+          newData$sc[outlierNodes[l]] <- neighborClusters[m]
+          # Calculate intra-cluster similarity based on usage pattern
+          newSim <- calculateSim(newData, neighborClusters[m])
+          # Store clustering result only if similarity value is less than all previous similarity values
+          if (newSim < sim) {
+            sim <- newSim
+            bestCluster <- neighborClusters[m]
+          }
+        }
+        # Group outlier node with best nearby cluster based on usage pattern
+        data$sc[outlierNodes[l]] <- bestCluster
+      } 
+    }
+  }
+  return(data)
+}
+
+relabelClusters <- function(data, numGeo, neighbors) {
   # Create distance matrix from coordinate nodes
   coord <- data$clusters %>%
     select(start_long, start_lat)
@@ -203,57 +241,40 @@ relabelClusters <- function(data, numGeo, neighbors, neighborCutoff) {
   relabeledData <- data$clusters
   # Loop through each coordinate node
   for (i in 1:nrow(data$clusters)) {
-    # Determine 8 nearest nodes (neighbors), which for most, will be the 4 cardinal directions and 4 corners around points that are surrounded by other points
+    # Determine 8 nearest nodes (neighbors)
     ind <- sort(dist[,i], na.last = TRUE, index.return = TRUE)$ix
     ind <- ind[1:neighbors] 
-    # Get the rows of the neighbors from the original data
-    neighborNodes <- data$clusters[ind,]
-    # Determine most common cluster label of neighbors
-    cluster <- mode(neighborNodes$sc)
-    # If the number of neighbors with the same cluster as the mode is above the neighbor cutoff value,
-    if (nrow(neighborNodes %>% filter(sc == as.integer(cluster))) >= neighborCutoff) { 
-      # Relabel selected node based on neighbors
-      relabeledData$sc[i] <- as.integer(cluster)
+    # Get neighbor node data
+    neighborClusters <- data$clusters[ind,]
+    neighborDist <- round(dist[ind,i])
+    # Create vector of neighbor node clusters such that frequency corresponds to the distance of that neighbor to the chosen coordinate node
+    neighborNodes <- c()
+    for (j in 1:neighbors) {
+      neighborNodes <- c(neighborNodes, rep.int(c(neighborClusters$sc[j]), neighborDist[j]))
     }
+    # Determine most common cluster label of neighbors
+    cluster <- mode(neighborNodes)
+    # Relabel selected node based on neighbors
+    relabeledData$sc[i] <- as.numeric(cluster)
   }
   # Count number of nodes per cluster
+  numNodes <- numNodes(relabeledData)
+  # Relabel clusters in case some labels were lost in relabeling process
+  if (length(numNodes) < numGeo) {
+    relabeledData$sc <- factor(relabeledData$sc, labels = 1:length(numNodes))
+  }
+  # Group outliers in with cluster most similar based on usage pattern
+  relabeledData <- handleOutliers(relabeledData, numNodes, dist, neighbors)
+  # Recount number of nodes per cluster
   numNodes <- numNodes(relabeledData)
   # Calculate intra-cluster similarity based on usage pattern
   clustersUsage <- relabeledData %>% 
     select(-c(start_lat, start_long, from))
-  sim <- round(calculateSim(clustersUsage, numGeo), digits = 3)
+  sim <- round(avgSim(clustersUsage, numGeo), digits = 3)
   return(list(clusters = relabeledData, numNodes = numNodes, sim = sim))
 }
 
-relabelYear <- relabelClusters(splitYear, numGeo, neighbors, neighborCutoff)
-
-# Loop through clustering steps to minimize intra-cluster similarity -----------
-# Initialize similarity value and trial number 
-sim <- 1
-numTrial <- 0
-# Initialize vector to store similarity values
-simValues <- c()
-while (numTrial < 100) { # Run through no more than 100 trials 
-  numTrial <- numTrial+1
-  # Run through clustering steps
-  geo <- clusterByGeo(dataYear, numGeo)
-  usage <- clusterByUsage(dataYear, geo$clusters, numUsage)
-  split <- splitClusters(usage, numGeo, numUsage)
-  relabel <- relabelClusters(split, numGeo, neighbors, neighborCutoff)
-  # Store clustering result only if similarity value is less than all previous similarity values
-  if (relabelYear$sim < sim) {
-    sim <- relabelYear$sim
-    geoYear <- geo
-    usageYear <- usage
-    splitYear <- split
-    relabelYear <- relabel
-  }
-  # Leave while loop once no smaller similarity value can be achieved
-  simValues[numTrial] <- sim
-  if (length(simValues) > 30 & var(tail(simValues, 15)) == 0) {
-    numTrial <- 100
-  }
-}
+relabelYear <- relabelClusters(splitYear, numGeo, neighbors)
 
 # Plot clusters ----------------------------------------------------------------
 createPlot <- function(data, title, numGeo, numUsage){
@@ -271,7 +292,8 @@ createPlot <- function(data, title, numGeo, numUsage){
     guides(color = guide_legend(ncol = 2)) +
     labs(title = title,
          subtitle = paste("numGeo =", numGeo, "and numUsage =", numUsage,
-                          "\navgSimilarity =", data$sim)) +
+                          "\navgSimilarity =", data$sim,
+                          "\nrandomSeed =", seed)) +
     # Remove gray background
     theme_bw() + 
     # Remove grid
@@ -291,10 +313,10 @@ plots <- mget(ls(pattern="plot"))
 dir <- "/home/marion/PVDResearch/Plots"
 # dir <- "/Users/Alice/Dropbox/pvd_summer"
 # dir <- "/Users/nolan/Dropbox/pvd_summer_plots"
-filenames <- c("Spectral_clusters_by_geo_8", 
-               "Spectral_cluster_after_LPA_8",
-               "Spectral_clusters_by_usage_split_8", 
-               "Spectral_clusters_by_usage_8")
+filenames <- c("Spectral_clusters_by_geo_10", 
+               "Spectral_cluster_after_LPA_10",
+               "Spectral_clusters_by_usage_split_10", 
+               "Spectral_clusters_by_usage_10")
 paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
 for(i in 1:length(plots)){
