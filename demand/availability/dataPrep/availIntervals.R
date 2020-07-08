@@ -1,7 +1,14 @@
 library(tidyverse)
-
+setwd("~/Documents/github/pvd_summer/demand/availability/dataPrep") # change to your WD
+source('mapToTract.R')
 ## LOCATION DATA INTAKE ##
-clean <- function(df){
+filterLoc <- function(df){
+  "Only select available"
+  df <- df %>% filter(vehicle_status == "available")  %>%
+  filter(difftime(end_time, start_time, units = "mins") > 1)
+  return(df)
+}
+cleanLoc <- function(df){
   "Selects only the location data needed"
   df <- df %>% select(-c(provider, vehicle_status, vehicle_status_reason, 
                          device_type, areas, lat, lng)) %>% # remove unwanted columns
@@ -72,8 +79,8 @@ calcDates <- function(entry){
 dateConstrain <- function(entry, date, dates){
   "Create a new entry for that day"
   if (length(dates) == 1){
-    return(entry)
   }
+    return(entry)
   if (date == dates[[1]]){ # first
     entry[["endTime"]] <- dayEnd
   }
@@ -151,7 +158,7 @@ fillClean <- function(intervalData, period){
 getIntervalData <- function(locData, period){
   intervalData <- tibble(TRACT=numeric(), DATE=character())
   intervalData$INTERVALS <- list() # some reason needs to be seperate
-  for (i in 1:nrow(locData)){ # for each row
+  for (i in 1:nrow(locData)){
     row <- locData[i,]
     intervalData <- procEntry(intervalData, row)
   }
@@ -164,14 +171,15 @@ getIntervalData <- function(locData, period){
 }
 
 ## RUN CODE ##
-
 dayStart <<- "06:00:00"
 dayEnd <<- "22:00:00"
 period <- as.character(seq(
-  as.Date("2019-4-1"), as.Date("2019-10-31"), by = "day"))
-# prep loc data
-locData <- locations_and_tract_and_rounded_latlong_from_oct18_oct19 %>%
-  clean() %>% splitTimeCol()
-  filter((startDate %in% period) & (endDate %in% period)) # restrict to period
- # compute intervals
-intervalData <- getIntervalData(locData, period)
+  as.Date("2019-12-01"), as.Date("2019-12-31"), by = "day"))
+file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations2019.csv"
+
+locData <- read_csv(file) %>% 
+  filterLoc() %>% mapToTract() %>% # find tracts for available scooters
+  cleanLoc() %>% splitTimeCol() %>% # simplify for our usage
+  filter((startDate %in% period) & (endDate %in% period)) # only select desired dates
+
+intervalData <- getIntervalData(locData, period) # calc intervals from locData
