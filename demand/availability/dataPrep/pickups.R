@@ -31,24 +31,12 @@ pickups <- read_csv(file) %>%
   splitTimeCol() %>%
   preClean() %>%
   mapToTract() %>%
-  postClean() %>%
-  group_by(TRACT)
-pickupsSummary <- tibble(DATE=character(), TRIPS=numeric(), TRACT=numeric())
-tracts <- pickups %>% distinct(TRACT) %>% pull()
-for (i in 1:length(tracts)){
-  tract <- tracts[i]
-  tractPickups <- pickups %>% filter(TRACT == tract)
-  dailyPickups <- tractPickups %>%
-    group_by(DATE) %>% summarize(DATE, TRIPS=n(), .groups="keep") %>%
-    distinct()
-  dailyPickups$TRACT <- tract
-  print(dailyPickups)
-  pickupsSummary <- pickupsSummary %>% bind_rows(dailyPickups)
-}
+  postClean()
 
-# ao <- pickups %>% group_by(DATE) %>% summarize(n())
-  
+pickupsSummary <- pickups %>% 
+  group_by(TRACT) %>% 
+  group_by(DATE, .add=TRUE) %>% 
+  summarize(DATE, TRIPS=n(), .groups="keep") %>% # for each day in each tract
+  distinct()
 
-# Process
-# 5. Find # of items for each  date
-# 6. Save
+# save?
