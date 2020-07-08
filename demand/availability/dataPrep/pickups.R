@@ -15,7 +15,6 @@ preClean <- function(df){
   df <- df %>% filter(event_type_reason == "user_pick_up") %>%
     filter(TIME > "06:00:00" & TIME < "20:00:00") %>%
     select(-c(provider, event_type, event_type_reason, device_type))
-  print(df)
   return(df)
 }
 
@@ -35,12 +34,13 @@ pickups <- read_csv(file) %>%
   postClean() %>%
   group_by(TRACT)
 pickupsSummary <- tibble(DATE=character(), TRIPS=numeric(), TRACT=numeric())
-tracts <- pickups %>% distinct(TRACT) %>% pull() # good
-for (i in 1:length(tracts)){ # good
-  tract <- tracts[i] # good
+tracts <- pickups %>% distinct(TRACT) %>% pull()
+for (i in 1:length(tracts)){
+  tract <- tracts[i]
   tractPickups <- pickups %>% filter(TRACT == tract)
   dailyPickups <- tractPickups %>%
-    group_by(DATE) %>% summarize(DATE, TRIPS=n(), .groups="keep")
+    group_by(DATE) %>% summarize(DATE, TRIPS=n(), .groups="keep") %>%
+    distinct()
   dailyPickups$TRACT <- tract
   print(dailyPickups)
   pickupsSummary <- pickupsSummary %>% bind_rows(dailyPickups)
