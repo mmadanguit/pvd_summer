@@ -21,7 +21,6 @@ mapCoord <- function(df, tracts){
   censusTracts: tracts of the region"
   mappedTracts <- convCoord(df$lng, df$lat, tracts) %>% # get right format
     st_join(tracts) # find tracts
-  print(mappedTracts)
   df <- mutate(df, GEOID = mappedTracts$GEOID, 
                TRACT = as.numeric(mappedTracts$TRACT))
   return(df)
