@@ -48,4 +48,4 @@ pickupsSummary <- pickups %>%
   distinct() %>%
   fill(period)
 
-write.csv(pickupsSummary, "~/Downloads/pickupsSummary2018.csv")
+write.csv(pickupsSummary, "~/Downloads/pickupsSummary2018.csv", row.names=FALSE)

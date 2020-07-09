@@ -184,4 +184,4 @@ locData <- read_csv(file) %>%
   filter((startDate %in% period) & (endDate %in% period)) # only select desired dates
   
 intervalData <- getIntervalData(locData, period) # calc intervals from locData
-write_csv(intervalData, "~/Downloads/availIntervals2019.csv")
+write.csv(intervalData, "~/Downloads/availIntervals2019.csv", row.names=FALSE)
