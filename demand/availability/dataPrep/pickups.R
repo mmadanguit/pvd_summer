@@ -13,7 +13,7 @@ splitTimeCol <- function(df){
 preClean <- function(df){
   "Select only relevant data"
   df <- df %>% filter(event_type_reason == "user_pick_up") %>%
-    filter(TIME > "06:00:00" & TIME < "20:00:00") %>%
+    filter(TIME > "06:00:00" & TIME < "22:00:00") %>%
     select(-c(provider, event_type, event_type_reason, device_type))
   return(df)
 }
