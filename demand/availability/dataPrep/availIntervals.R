@@ -80,8 +80,8 @@ calcDates <- function(entry){
 dateConstrain <- function(entry, date, dates){
   "Create a new entry for that day"
   if (length(dates) == 1){
-  }
     return(entry)
+  }
   if (date == dates[[1]]){ # first
     entry[["endTime"]] <- dayEnd
   }
@@ -182,5 +182,6 @@ locData <- read_csv(file) %>%
   filterLoc() %>% mapToTract() %>% # find tracts for available scooters
   cleanLoc() %>% splitTimeCol() %>% # simplify for our usage
   filter((startDate %in% period) & (endDate %in% period)) # only select desired dates
-
+  
 intervalData <- getIntervalData(locData, period) # calc intervals from locData
+write_csv(intervalData, "~/Downloads/availIntervals2019.csv")
