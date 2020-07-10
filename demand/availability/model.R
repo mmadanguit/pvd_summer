@@ -38,39 +38,38 @@ dailyAvg <- function(demand){
   start: start date
   end: end date
   names: vector of names for columns"
-  demand <- demand %>% group_by(TRACT)
-  dAvg <- demand %>% drop_na() %>%
+  dAvg <- demand %>% group_by(TRACT) %>%
+     drop_na() %>%
     summarize(avgTrips = mean(ADJTRIPS),
               stdTrips = sd(ADJTRIPS), 
               zeroTrips = sum(ADJTRIPS == 0),
               avgAvail = mean(AVAIL),
               stdAvail = sd(AVAIL), 
               zeroAvail = sum(AVAIL == 0)) # days w/ zero avail
-  # dAvg <- dAvg %>% add_column
-  #                    summarize(demand, naAvail = sum(is.na(AVAIL))))
-  # dAvg <- 
+  dAvg <- dAvg %>% add_column
+                     summarize(demand, naAvail = sum(is.na(AVAIL)))
   return(dAvg)
 }
 
 constDemand <- function(availTime, pickups){
   demand <- availTime %>%
-    add_column(ADJTRIPS = pickups$TRIPS/(availTime$AVAIL/960)) %>%
-               dailyAvg()
+    add_column(ADJTRIPS = pickups$ADJTRIPS) %>% 
+    dailyAvg() %>%
+    drop_na()
   geoData <- readRDS("censusData/riDataGeo.Rds") %>% 
     arrange(TRACT) %>% 
     filter(as.logical(match(TRACT, demand$TRACT)))
   demand <- demand %>%
-    add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME) %>%
-    st_as_sf()
-  return(demand)
+    add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME)
+  return(st_as_sf(demand))
 }
 
 availTime <- getAvail(fol)
 pickups <- getPickups(fol) %>% 
   filter(TRACT %in% availTime$TRACT) # filter to tracts which exist within data
+pickups$ADJTRIPS <- pickups$TRIPS/(availTime$AVAIL/960)
 demand <- constDemand(availTime, pickups)
 
 pal <- mapviewPalette("mapviewSpectralColors")
-# mv <- mapview(demand, zcol = "avgTrips", col.regions = pal(20))
-# print(mv)
-mapview(demand, zcol = "avgTrips")
+mv <- mapview(demand, zcol = "avgTrips", col.regions = pal(20))
+print(mv)
