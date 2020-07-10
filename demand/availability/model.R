@@ -53,13 +53,13 @@ dailyAvg <- function(demand){
 }
 
 constDemand <- function(availTime, pickups){
-  geoData <- readRDS("censusData/riDataGeo.Rds") %>% 
-    arrange(TRACT) %>% 
-    filter(as.logical(match(geoData$TRACT, demand$TRACT)))
-  
   demand <- availTime %>%
     add_column(ADJTRIPS = pickups$TRIPS/(availTime$AVAIL/960)) %>%
-               dailyAvg() %>%
+               dailyAvg()
+  geoData <- readRDS("censusData/riDataGeo.Rds") %>% 
+    arrange(TRACT) %>% 
+    filter(as.logical(match(TRACT, demand$TRACT)))
+  demand <- demand %>%
     add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME) %>%
     st_as_sf()
   return(demand)
