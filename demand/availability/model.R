@@ -2,7 +2,7 @@ library(tidyverse)
 library(sf)
 library(mapview)
 setwd("~/Documents/github/pvd_summer/") # change to your WD
-fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
+fol <<- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
 
 startD <<- "2019-12-01"
 endD <<- "2019-12-31"
@@ -32,45 +32,50 @@ getPickups <- function(fol){
   return(pickups)
 }
 
+geomData <- function(demand){
+  "Add geometry data"
+  geoData <- readRDS("censusData/riDataGeo.Rds") %>% 
+    arrange(TRACT) %>% 
+    filter(as.logical(match(TRACT, demand$TRACT)))
+  demand <- demand %>%
+    add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME)
+  return(st_as_sf(demand))
+}
+
 dailyAvg <- function(demand){
   "Find daily average for trip data over period of time.
-  demand: demand dataframe
-  start: start date
-  end: end date
-  names: vector of names for columns"
-  demand <- demand %>% group_by(TRACT)
-  dAvg <- demand %>% drop_na() %>%
-    summarize(avgTrips = mean(ADJTRIPS),
-              stdTrips = sd(ADJTRIPS), 
-              zeroTrips = sum(ADJTRIPS == 0),
-              avgAvail = mean(AVAIL),
-              stdAvail = sd(AVAIL), 
-              zeroAvail = sum(AVAIL == 0)) # days w/ zero avail
-  # dAvg <- dAvg %>% add_column
-  #                    summarize(demand, naAvail = sum(is.na(AVAIL))))
-  # dAvg <- 
-  return(dAvg)
+  demand: demand dataframe"
+  print(demand)
+  dAvg <- demand %>% 
+    group_by(TRACT) %>%
+    summarize(meanTrips = mean(ADJTRIPS, na.rm = TRUE),
+              medTrips = median(ADJTRIPS, na.rm = TRUE),
+              stdTrips = sd(ADJTRIPS, na.rm = TRUE),
+              zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE),
+              meanAvail = mean(AVAIL, na.rm = TRUE),
+              medAvail = median(AVAIL, na.rm = TRUE),
+              stdAvail = sd(AVAIL, na.rm = TRUE),
+              zeroAvail = sum(AVAIL == 0, na.rm = TRUE), # days w/ zero avail
+              naAvail = sum(is.na(AVAIL))) %>%
+    drop_na()
+  dAvg[dAvg == Inf] <- NA
+  return(geomData(dAvg))
 }
 
 constDemand <- function(availTime, pickups){
-  geoData <- readRDS("censusData/riDataGeo.Rds") %>% 
-    arrange(TRACT) %>% 
-    filter(as.logical(match(geoData$TRACT, demand$TRACT)))
-  
+  availTime <- getAvail(fol)
+  pickups <- getPickups(fol) %>% 
+    filter(TRACT %in% availTime$TRACT) # filter to tracts which exist within data
+  pickups$ADJTRIPS <- pickups$TRIPS/(availTime$AVAIL/960)
   demand <- availTime %>%
-    add_column(ADJTRIPS = pickups$TRIPS/(availTime$AVAIL/960)) %>%
-               dailyAvg() %>%
-    add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME) %>%
-    st_as_sf()
+    add_column(ADJTRIPS = pickups$ADJTRIPS)
   return(demand)
 }
 
-availTime <- getAvail(fol)
-pickups <- getPickups(fol) %>% 
-  filter(TRACT %in% availTime$TRACT) # filter to tracts which exist within data
 demand <- constDemand(availTime, pickups)
-
+demand <- demand %>%
+  # filter() %>%
+  dailyAvg()
 pal <- mapviewPalette("mapviewSpectralColors")
-# mv <- mapview(demand, zcol = "avgTrips", col.regions = pal(20))
-# print(mv)
-mapview(demand, zcol = "avgTrips")
+mv <- mapview(demand, zcol = "meanTrips", col.regions = pal(20))
+print(mv)

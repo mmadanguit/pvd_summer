@@ -48,12 +48,13 @@ features <- merge(tripData, weatherData, by = "date")
 data <- features %>%  
   # Count number of trips per day per hour
   group_by(date, time) %>%
-  summarise(weekday = mean(weekday),
-            season = mean(season),
+  summarise(weekday = weekday,
+            season = season,
             AWND = mean(AWND),
             PRCP = mean(PRCP),
             TAVG = mean(TAVG),
             count = n()) 
+
 # Create a last_count column that stores the count from the previous time slot
 data$last_count <- c(0, data$count[-length(data$count)]) 
 # Make last_count zero at the start of every day

@@ -4,8 +4,9 @@ source('mapToTract.R')
 ## LOCATION DATA INTAKE ##
 filterLoc <- function(df){
   "Only select available"
-  df <- df %>% filter(vehicle_status == "available")  %>%
-  filter(difftime(end_time, start_time, units = "mins") > 1)
+  df <- df %>% drop_na() %>%
+    filter(vehicle_status == "available")  %>%
+    filter(difftime(end_time, start_time, units = "mins") > 1)
   return(df)
 }
 
