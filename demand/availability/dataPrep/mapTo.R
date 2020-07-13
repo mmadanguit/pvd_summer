@@ -1,7 +1,9 @@
 library(sf)
 library(tidyverse)
 library(tigris)
+library(plyr)
 
+# TRACT
 getTracts <- function(state){
   censusTracts <- tracts(state, class = "sf") %>%
     select(GEOID, TRACT = NAME)
@@ -31,3 +33,24 @@ mapToTract <- function(df){
   df <- mapCoord(df, tracts)
   return(df)
 }
+
+# LAT LNG
+roundLatLng <- function(df){
+  "Round lat lng"
+ df <- df %>% 
+   add_column(latR = round_any(df$lat, 0.005), lngR = round_any(df$lng, 0.005)) %>%
+   select(-c(lat, lng))
+ return(df)
+}
+
+fakeTract <- function(df){
+  "Create fake tract number for rounded lat lng"
+  # get decimal portion of lat/lng
+  latD <- str_sub(as.character(df$latR), 4, -1) 
+  lngD <- str_sub(as.character(df$lngR), 5, -1)
+  df$fakeTRACT <- as.numeric(paste(latD, lngD, sep = "."))
+  return(df)
+}
+# file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations.csv"
+# locations <- read_csv(file)
+# a <- roundLatLng(locations) %>% fakeTract()
