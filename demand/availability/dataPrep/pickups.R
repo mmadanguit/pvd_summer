@@ -46,6 +46,7 @@ pickupsSummary <- pickups %>%
   group_by(DATE, .add=TRUE) %>% 
   summarize(DATE, TRIPS=n(), .groups="keep") %>% # for each day in each tract
   distinct() %>%
-  fill(period)
+  fill(period) %>%
+  mutate(DAY = weekdays(as.Date(DATE))) # enter weekday 
 
 write.csv(pickupsSummary, "~/Downloads/pickupsSummary.csv", row.names=FALSE)

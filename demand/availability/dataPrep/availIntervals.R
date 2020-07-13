@@ -184,5 +184,6 @@ locData <- read_csv(file) %>%
   cleanLoc() %>% splitTimeCol() %>% # simplify for our usage
   filter((startDate %in% period) & (endDate %in% period)) # only select desired dates
   
-intervalData <- getIntervalData(locData, period) # calc intervals from locData
+intervalData <- getIntervalData(locData, period) %>% # calc intervals from locData
+  mutate(DAY = weekdays(as.Date(DATE))) # enter weekday 
 write.csv(intervalData, "~/Downloads/availIntervals.csv", row.names=FALSE)
