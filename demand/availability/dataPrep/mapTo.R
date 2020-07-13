@@ -1,7 +1,7 @@
 library(sf)
 library(tidyverse)
 library(tigris)
-library(plyr)
+# library(plyr)
 
 # TRACT
 getTracts <- function(state){
