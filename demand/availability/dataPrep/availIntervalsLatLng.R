@@ -1,6 +1,8 @@
 library(tidyverse)
 # setwd("~/Documents/github/pvd_summer/demand/availability/dataPrep") # change to your WD
 source('mapToTract.R')
+source('roundedLatLng.R')
+
 ## LOCATION DATA INTAKE ##
 filterLoc <- function(df){
   "Only select available"
@@ -43,26 +45,26 @@ dailySampSize <- function(df){
 }
 
 ## INTERVAL CALCULATIONS ##
-getDateData <- function(intervalData, tract, date){
+getDateData <- function(intervalData, tract_latlng, date){
   "Load existing interval data if it exists"
-  if (!(tract %in% intervalData$TRACT)){
+  if (!(tract_latlng %in% intervalData$TRACT_latlng)){
     return(NULL)
   }
-  tractIntData <- filter(intervalData, TRACT == tract)
+  tractIntData <- filter(intervalData, TRACT_latlng == tract_latlng)
   if (!(date %in% tractIntData$DATE)){
     return(NULL)
   }
   return(filter(tractIntData, DATE == date)$INTERVALS) # intervals for that day 
 }
 
-saveIntervalData <- function(df, tract, date, intervals){
+saveIntervalData <- function(df, tract_latlng, date, intervals){
   if (is.null(intervals)){
     return(df)
   }
-  if (date %in% filter(df, TRACT == tract)$DATE){ # exists
-    df <- df %>% filter(TRACT != tract | DATE != date)
+  if (date %in% filter(df, TRACT_latlng == tract_latlng)$DATE){ # exists
+    df <- df %>% filter(TRACT_latlng != tract_latlng | DATE != date)
   }
-  df <- df %>% add_row(TRACT = tract, DATE = date, INTERVALS = intervals) # add row
+  df <- df %>% add_row(TRACT_latlng = tract_latlng, DATE = date, INTERVALS = intervals) # add row
   return(df)
 }
 
@@ -139,10 +141,10 @@ procEntry <- function(intervalData, entry){
   "Process an entry/AKA row in bike location data"
   dates <- calcDates(entry)
   for (date in dates){
-    dateData <- getDateData(intervalData, entry[['TRACT']], date)
+    dateData <- getDateData(intervalData, entry[['TRACT_latlng']], date)
     entryDate <- dateConstrain(entry, date, dates)
     intervals <- procInterval(entryDate, dateData)
-    intervalData <- saveIntervalData(intervalData, entry[['TRACT']], date, intervals)
+    intervalData <- saveIntervalData(intervalData, entry[['TRACT_latlng']], date, intervals)
   }
   return(intervalData)
 }
@@ -151,17 +153,17 @@ fillClean <- function(intervalData, period){
   "Fill in missing data with NAs, missing per tract with zeros"
   noDataDays <- period[!(period %in% intervalData$DATE)] # no data
   period <- period[!(period %in% noDataDays)]
-  intervalData <- intervalData %>% complete(nesting(TRACT),
+  intervalData <- intervalData %>% complete(nesting(TRACT_latlng),
                                             DATE = period, fill = list(START=NA, END=NA, AVAIL=0))
   for (date in noDataDays) {
     intervalData <- intervalData %>% 
-      add_row(TRACT = unique(intervalData$TRACT), DATE = date, AVAIL = NA)
+      add_row(TRACT_latlng = unique(intervalData$TRACT_latlng), DATE = date, AVAIL = NA)
   }
   return(intervalData)
 }
 
 getIntervalData <- function(locData, period){
-  intervalData <- tibble(TRACT=numeric(), DATE=character())
+  intervalData <- tibble(TRACT=numeric(), TRACT_latlng=numeric(), DATE=character())
   intervalData$INTERVALS <- list() # some reason needs to be seperate
   for (i in 1:nrow(locData)){
     row <- locData[i,]
@@ -182,7 +184,7 @@ period <- as.character(seq(
   as.Date("2019-01-01"), as.Date("2019-12-31"), by = "day"))
 # file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations2019.csv"
 
-locData <- read_csv("locations_and_rounded_tractlatlong_from_oct18_oct19.csv") %>% 
+locData <- roundLatLng("locations2019.csv") %>% 
   filterLoc() %>% mapToTract() %>% # find tracts for available scooters
   cleanLoc() %>% splitTimeCol() %>% # simplify for our usage
   filter((startDate %in% period) & (endDate %in% period)) # only select desired dates
