@@ -13,18 +13,13 @@ available <- function(df){
 
 selectNeeded <- function(df){
   "Selects only the location data needed"
-  df <- df %>% filter(TRACT == 1.01)
   print(df)
   df <- df %>% 
     filter(TRACT <= 37) %>% # only select relevant columns
-    # filter(TRACT == 8) %>%
     select(-c(provider, vehicle_status, vehicle_status_reason, 
                          device_type, areas)) %>% # remove unwanted columns
    arrange(TRACT) %>% group_by(TRACT) %>%
    arrange(start_time, .by_group = TRUE)
-  # error cause by NA TRACT -> nope
-  # could it be caused by declaring a function that matches name of funcs?
-  print('b')
   return(df)
 }
 
@@ -41,11 +36,10 @@ splitTimeCol <- function(df){
 prepData <- function(locData, period){
   "Prep for finding interval data"
   locData <- locData %>% 
-    available123() %>%
-    selectNeeded123() %>%
+    available() %>%
+    selectNeeded() %>%
     splitTimeCol() %>%
     filter((startDate %in% period) & (endDate %in% period))
-  print('done')
   return(locData)
 }
 
@@ -208,13 +202,13 @@ file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations.
 locationData <- read_csv(file)
 intervalsTRACT <- locationData %>% 
   mapToTract() %>%
-  prepData() %>%
+  prepData(period) %>%
   getIntervalData(period)
 
 intervalsLatLng <- locationData %>%
   roundLatLng() %>%
   fakeTract() %>%
-  prepData %>%
+  prepData(period) %>%
   getIntervalData(period)
   
 write.csv(intervalData, "~/Downloads/availIntervals.csv", row.names=FALSE)
