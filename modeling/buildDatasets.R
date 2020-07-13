@@ -48,8 +48,8 @@ features <- merge(tripData, weatherData, by = "date")
 data <- features %>%  
   # Count number of trips per day per hour
   group_by(date, time) %>%
-  summarise(weekday = weekday,
-            season = season,
+  summarise(weekday = mean(as.numeric(as.character(weekday))),
+            season = mean(as.numeric(as.character(season))),
             AWND = mean(AWND),
             PRCP = mean(PRCP),
             TAVG = mean(TAVG),
