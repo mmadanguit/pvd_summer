@@ -31,7 +31,7 @@ fill <- function(df, period){
   return(df)
 }
 
-file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/events2018.csv"
+file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/events.csv"
 
 pickups <- read_csv(file) %>%
   splitTimeCol() %>%
@@ -40,7 +40,7 @@ pickups <- read_csv(file) %>%
   postClean()
 
 period <- as.character(seq(
-  as.Date("2018-1-01"), as.Date("2018-12-31"), by = "day"))
+  as.Date("2018-9-01"), as.Date("2019-10-31"), by = "day"))
 pickupsSummary <- pickups %>% 
   group_by(TRACT) %>% 
   group_by(DATE, .add=TRUE) %>% 
@@ -48,4 +48,4 @@ pickupsSummary <- pickups %>%
   distinct() %>%
   fill(period)
 
-write.csv(pickupsSummary, "~/Downloads/pickupsSummary2018.csv", row.names=FALSE)
+write.csv(pickupsSummary, "~/Downloads/pickupsSummary.csv", row.names=FALSE)

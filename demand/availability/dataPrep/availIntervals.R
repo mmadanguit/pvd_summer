@@ -176,8 +176,8 @@ getIntervalData <- function(locData, period){
 dayStart <<- "06:00:00"
 dayEnd <<- "22:00:00"
 period <- as.character(seq(
-  as.Date("2019-12-01"), as.Date("2019-12-31"), by = "day"))
-file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations2019.csv"
+  as.Date("2018-9-01"), as.Date("2019-10-31"), by = "day"))
+file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations.csv"
 
 locData <- read_csv(file) %>% 
   filterLoc() %>% mapToTract() %>% # find tracts for available scooters
@@ -185,4 +185,4 @@ locData <- read_csv(file) %>%
   filter((startDate %in% period) & (endDate %in% period)) # only select desired dates
   
 intervalData <- getIntervalData(locData, period) # calc intervals from locData
-write.csv(intervalData, "~/Downloads/availIntervals2019.csv", row.names=FALSE)
+write.csv(intervalData, "~/Downloads/availIntervals.csv", row.names=FALSE)
