@@ -48,7 +48,7 @@ fakeTract <- function(df){
   # get decimal portion of lat/lng
   latD <- str_sub(as.character(df$latR), 4, -1) 
   lngD <- str_sub(as.character(df$lngR), 5, -1)
-  df$fakeTRACT <- as.numeric(paste(latD, lngD, sep = "."))
+  df$TRACT <- as.numeric(paste(latD, lngD, sep = "."))
   return(df)
 }
 # file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations.csv"

@@ -1,22 +1,30 @@
 library(tidyverse)
-setwd("~/Documents/github/pvd_summer/demand/availability/dataPrep") # change to your WD
-source('mapToTract.R')
+setwd("~/Documents/github/pvd_summer/demand/availability/dataPrep")
+source('mapTo.R')
 ## LOCATION DATA INTAKE ##
-filterLoc <- function(df){
+available <- function(df){
   "Only select available"
   df <- df %>% drop_na() %>%
     filter(vehicle_status == "available")  %>%
     filter(difftime(end_time, start_time, units = "mins") > 1)
+  print('a')
   return(df)
 }
 
-cleanLoc <- function(df){
+selectNeeded <- function(df){
   "Selects only the location data needed"
-  df <- df %>% select(-c(provider, vehicle_status, vehicle_status_reason, 
-                         device_type, areas, lat, lng)) %>% # remove unwanted columns
-    arrange(TRACT) %>% group_by(TRACT) %>% 
-    arrange(start_time, .by_group = TRUE) %>%
-    filter(TRACT <= 37)
+  df <- df %>% filter(TRACT == 1.01)
+  print(df)
+  df <- df %>% 
+    filter(TRACT <= 37) %>% # only select relevant columns
+    # filter(TRACT == 8) %>%
+    select(-c(provider, vehicle_status, vehicle_status_reason, 
+                         device_type, areas)) %>% # remove unwanted columns
+   arrange(TRACT) %>% group_by(TRACT) %>%
+   arrange(start_time, .by_group = TRUE)
+  # error cause by NA TRACT -> nope
+  # could it be caused by declaring a function that matches name of funcs?
+  print('b')
   return(df)
 }
 
@@ -28,6 +36,17 @@ splitTimeCol <- function(df){
     add_column(startDate = start[,1], endDate = end[,1], 
                startTime = start[,2], endTime = end[,2])
   return(df)
+}
+
+prepData <- function(locData, period){
+  "Prep for finding interval data"
+  locData <- locData %>% 
+    available123() %>%
+    selectNeeded123() %>%
+    splitTimeCol() %>%
+    filter((startDate %in% period) & (endDate %in% period))
+  print('done')
+  return(locData)
 }
 
 ## ANALYSIS FUNCTIONS - UNUSED IN MAIN CODE##
@@ -157,18 +176,25 @@ fillClean <- function(intervalData, period){
   return(intervalData)
 }
 
+summarizeIntervals <- function(intervalData){
+  "Unpack list intervals and write in more usable form factor"
+  intervalData$START <- unlist(lapply(intervalData$INTERVALS, '[', 1))
+  intervalData$END <- unlist(lapply(intervalData$INTERVALS, '[', 2))
+  intervalData$AVAIL <- difftime(paste(intervalData$DATE, intervalData$END),
+                                 paste(intervalData$DATE, intervalData$START))
+  return(select(intervalData, -c(INTERVALS)))
+}
+
 getIntervalData <- function(locData, period){
+  print('hi')
   intervalData <- tibble(TRACT=numeric(), DATE=character())
   intervalData$INTERVALS <- list() # some reason needs to be seperate
   for (i in 1:nrow(locData)){
     row <- locData[i,]
     intervalData <- procEntry(intervalData, row)
   }
-  intervalData$START <- unlist(lapply(intervalData$INTERVALS, '[', 1))
-  intervalData$END <- unlist(lapply(intervalData$INTERVALS, '[', 2))
-  intervalData$AVAIL <- difftime(paste(intervalData$DATE, intervalData$END),
-                                 paste(intervalData$DATE, intervalData$START))
-  intervalData <- intervalData %>% select(-c(INTERVALS))
+  intervalData <- summarizeIntervals %>% 
+    add_column(DAY = weekdays(as.Date(DATE))) # get weekday
   return(fillClean(intervalData, period))
 }
 
@@ -179,11 +205,16 @@ period <- as.character(seq(
   as.Date("2018-9-01"), as.Date("2019-10-31"), by = "day"))
 file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations.csv"
 
-locData <- read_csv(file) %>% 
-  filterLoc() %>% mapToTract() %>% # find tracts for available scooters
-  cleanLoc() %>% splitTimeCol() %>% # simplify for our usage
-  filter((startDate %in% period) & (endDate %in% period)) # only select desired dates
+locationData <- read_csv(file)
+intervalsTRACT <- locationData %>% 
+  mapToTract() %>%
+  prepData() %>%
+  getIntervalData(period)
+
+intervalsLatLng <- locationData %>%
+  roundLatLng() %>%
+  fakeTract() %>%
+  prepData %>%
+  getIntervalData(period)
   
-intervalData <- getIntervalData(locData, period) %>% # calc intervals from locData
-  mutate(DAY = weekdays(as.Date(DATE))) # enter weekday 
 write.csv(intervalData, "~/Downloads/availIntervals.csv", row.names=FALSE)
