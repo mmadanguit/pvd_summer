@@ -7,15 +7,12 @@ available <- function(df){
   df <- df %>% drop_na() %>%
     filter(vehicle_status == "available")  %>%
     filter(difftime(end_time, start_time, units = "mins") > 1)
-  print('a')
   return(df)
 }
 
 selectNeeded <- function(df){
   "Selects only the location data needed"
-  print(df)
   df <- df %>% 
-    filter(TRACT <= 37) %>% # only select relevant columns
     select(-c(provider, vehicle_status, vehicle_status_reason, 
                          device_type, areas)) %>% # remove unwanted columns
    arrange(TRACT) %>% group_by(TRACT) %>%
@@ -73,7 +70,7 @@ saveIntervalData <- function(df, tract, date, intervals){
     return(df)
   }
   if (date %in% filter(df, TRACT == tract)$DATE){ # exists
-    df <- df %>% filter(TRACT != tract | DATE != date)
+    df <- df %>% filter(TRACT != tract | DATE != date) # remove entry
   }
   df <- df %>% add_row(TRACT = tract, DATE = date, INTERVALS = intervals) # add row
   return(df)
@@ -152,20 +149,8 @@ procEntry <- function(intervalData, entry){
     dateData <- getDateData(intervalData, entry[['TRACT']], date)
     entryDate <- dateConstrain(entry, date, dates)
     intervals <- procInterval(entryDate, dateData)
-    intervalData <- saveIntervalData(intervalData, entry[['TRACT']], date, intervals)
-  }
-  return(intervalData)
-}
-
-fillClean <- function(intervalData, period){
-  "Fill in missing data with NAs, missing per tract with zeros"
-  noDataDays <- period[!(period %in% intervalData$DATE)] # no data
-  period <- period[!(period %in% noDataDays)]
-  intervalData <- intervalData %>% complete(nesting(TRACT),
-    DATE = period, fill = list(START=NA, END=NA, AVAIL=0))
-  for (date in noDataDays) {
-    intervalData <- intervalData %>% 
-      add_row(TRACT = unique(intervalData$TRACT), DATE = date, AVAIL = NA)
+    intervalData <- saveIntervalData(intervalData, entry[['TRACT']], 
+                                     date, intervals)
   }
   return(intervalData)
 }
@@ -179,16 +164,29 @@ summarizeIntervals <- function(intervalData){
   return(select(intervalData, -c(INTERVALS)))
 }
 
-getIntervalData <- function(locData, period){
-  print('hi')
+fillClean <- function(intervalData, period){
+  "Fill in missing data with NAs, missing per tract with zeros"
+  noDataDays <- period[!(period %in% intervalData$DATE)] # no data
+  period <- period[!(period %in% noDataDays)]
+  intervalData <- intervalData %>% complete(nesting(TRACT),
+                                            DATE = period, fill = list(START=NA, END=NA, AVAIL=0))
+  for (date in noDataDays) {
+    intervalData <- intervalData %>% 
+      add_row(TRACT = unique(intervalData$TRACT), DATE = date, AVAIL = NA)
+  }
+  return(intervalData)
+}
+
+getIntervalData <- function(locData, period){9
   intervalData <- tibble(TRACT=numeric(), DATE=character())
   intervalData$INTERVALS <- list() # some reason needs to be seperate
   for (i in 1:nrow(locData)){
     row <- locData[i,]
     intervalData <- procEntry(intervalData, row)
   }
-  intervalData <- summarizeIntervals %>% 
-    add_column(DAY = weekdays(as.Date(DATE))) # get weekday
+  intervalData <- intervalData %>%
+    summarizeIntervals %>%
+    add_column(DAY = weekdays(as.Date(intervalData$DATE))) # get weekday
   return(fillClean(intervalData, period))
 }
 
@@ -202,13 +200,16 @@ file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations.
 locationData <- read_csv(file)
 intervalsTRACT <- locationData %>% 
   mapToTract() %>%
-  prepData(period) %>%
+  filter(TRACT <= 37) %>% # only select relevant columns
+  prepData(period) %>% 
   getIntervalData(period)
+write.csv(intervalsTRACT, "~/Downloads/availIntervalsTRACT.csv", row.names=FALSE)
 
 intervalsLatLng <- locationData %>%
   roundLatLng() %>%
   fakeTract() %>%
   prepData(period) %>%
-  getIntervalData(period)
-  
-write.csv(intervalData, "~/Downloads/availIntervals.csv", row.names=FALSE)
+  getIntervalData(period) %>%
+  undoFakeTract() %>%
+  select(c(LAT, LNG, DATE, START, END, AVAIL, DAY))
+write.csv(intervalsLatLng, "~/Downloads/availIntervalsLatLng.csv", row.names=FALSE)
