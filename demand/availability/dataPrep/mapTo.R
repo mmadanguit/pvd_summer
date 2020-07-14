@@ -60,7 +60,6 @@ undoFakeTract <- function(df){
   a <- str_split_fixed(as.character(df$TRACT), "\\.", 2)
   df$LAT <- as.numeric(paste("41", a[,1], sep="."))
   df$LNG <- as.numeric(paste("-71", a[,2], sep="."))
-  print(df)
   return(df)
 }
 # file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations.csv"
