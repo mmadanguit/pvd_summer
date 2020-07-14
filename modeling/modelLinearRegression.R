@@ -1,9 +1,7 @@
 # Load relevant libraries ------------------------------------------------------
 library(dplyr)
 library(ggfortify)
-library(GGally)
 library(ggplot2)
-library(Hmisc)
 library(tidyverse)
 
 # Import train and test data ---------------------------------------------------
@@ -21,58 +19,19 @@ trainData <- trainData %>%
 testData <- testData %>%
   select(-X)
 
-# Explore response and explanatory variables -----------------------------------
-# Plot histogram for response variable (count)
-plotResponse <- ggplot(data = trainData, aes(x = count)) +
-  geom_histogram(bins = 10) +
-  ggtitle("Distribute of Response Variable") +
-  xlab("numTrips")
-
-# Calculate correlation between explanatory variables
-trainDataSub <- trainData %>%
-  select(-c(date, time))
-plotCorr <- ggcorr(trainDataSub, label = TRUE) + # Create correlation matrix between all continuous variables
-  ggtitle("Correlation Matrix Between All Variables")
-plotCorrAll <- ggpairs(trainDataSub) + # Calculate correlations along with corresponding plots
-  ggtitle("Correlation Matrix Between All Variables")
-
-# Build linear models ----------------------------------------------------------
-# Build linear model using last_count, the variable that is most highly correlated with count
-lmSimple <- lm(count~last_count, data = trainData)
-# Compute r-squared value
-rSimpleTest <- summary(lmSimple)$r.squared
-# Create diagnostic plots 
-plotDiagSimple <- autoplot(lmSimple)
-
-# Build linear model using last_count, TAVG, and season
-lmPartial <- lm(count~last_count+TAVG+season, data = trainData)
-# Compute r-squared value
-rPartialTest <- summary(lmPartial)$r.squared
-# Create diagnostic plots 
-plotDiagPartial <- autoplot(lmPartial)
-
+# Build linear model -----------------------------------------------------------
 # Build linear model using all the variables except date
-lmFull <- lm(count~., data = select(trainData, -date))
-# Compute r-squared value
-rFullTest <- summary(lmFull)$r.squared
+lm <- lm(sqrt(count)~.+sqrt(last_count)-last_count, data = select(trainData, -date))
+# Compute adjusted r-squared value
+rTrain <- round(summary(lm)$adj.r.squared, digits = 4)
 # Create diagnostic plots 
-plotDiagFull <- autoplot(lmFull)
+plotDiag <- autoplot(lm)
 
 # Use models to predict values on test data ------------------------------------
-# Use simple linear model to predict values on test data
-predictSimple <- predict(lmSimple, newdata = testData)
+# Use linear model to predict values on test data
+predict <- predict(lm, newdata = select(testData, -date))
 # Compute r-squared value
-rSimpleTrain <- cor(predictSimple, testData$count)^2
-
-# Use partial linear model to predict values on test data
-predictPartial <- predict(lmPartial, newdata = testData)
-# Compute r-squared value
-rPartialTrain <- cor(predictPartial, testData$count)^2
-
-# Use full linear model to predict values on test data
-predictFull <- predict(lmFull, newdata = select(testData, -date))
-# Compute r-squared value
-rFullTrain <- cor(predictFull, testData$count)^2
+rTest <- round(cor(predict, testData$count)^2, digits = 4)
 
 # Create plots -----------------------------------------------------------------
 # Calculate hourly average scooter usage
@@ -83,7 +42,7 @@ calculateAvg <- function(data) {
   return(data)
 }
 
-createPlot <- function(predictedData, actualData, title) {
+createPlot <- function(predictedData, actualData, rValue) {
   # Adjust predicted data to match format of actual data
   predictedData <- predictedData %>%
     as_tibble() %>% 
@@ -99,12 +58,17 @@ createPlot <- function(predictedData, actualData, title) {
   # Plot predicted vs actual hourly average scooter usage 
   plot <- ggplot(data = avg, aes(x = time, y = count, group = id)) +
     geom_line(aes(linetype = id)) + 
-    ggtitle(title) +
+    labs(title = "Hourly Average Scooter Usage",
+         subtitle = paste("R-squared:", rValue)) +
     theme(axis.text.x = element_text(angle = 90))
   return(plot)
 }
 
-plotFull <- createPlot(predictFull, testData, "Hourly Average Scooter Usage (Test Data)")
+plot1 <- createPlot(predict, testData, rTest)
+
+predict <- predict(lm, data = select(trainData, -date))
+rTrain <- round(cor(predict, trainData$count)^2, digits = 4)
+plot2 <- createPlot(predict, trainData, rTrain)
 
 # Save plots -------------------------------------------------------------------
 plots <- mget(ls(pattern="plot"))
