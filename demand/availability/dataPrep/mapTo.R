@@ -21,10 +21,8 @@ mapCoord <- function(df, tracts){
   "Map coordinates to tract
   coords: coords to map
   censusTracts: tracts of the region"
-  mappedTracts <- convCoord(df$lng, df$lat, tracts) %>% # get right format
-    st_join(tracts) # find tracts
-  df <- mutate(df, GEOID = mappedTracts$GEOID, 
-               TRACT = as.numeric(mappedTracts$TRACT))
+  mappedTracts <- convCoord(df$lng, df$lat, tracts) #%>% # get right format
+  df <- mutate(df, TRACT = as.numeric(tracts$TRACT[as.numeric(st_within(mappedTracts,tracts))])) # find tracts
   return(df)
 }
 
@@ -60,7 +58,6 @@ undoFakeTract <- function(df){
   a <- str_split_fixed(as.character(df$TRACT), "\\.", 2)
   df$LAT <- as.numeric(paste("41", a[,1], sep="."))
   df$LNG <- as.numeric(paste("-71", a[,2], sep="."))
-  print(df)
   return(df)
 }
 # file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations.csv"
