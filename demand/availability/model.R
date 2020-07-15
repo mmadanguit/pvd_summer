@@ -64,10 +64,15 @@ constData <- function(fol, pickup = FALSE, latLng = FALSE){
   return(add_column(availTime, ADJTRIPS = pickups$ADJTRIPS))
 }
 
-dAvg <- function(trips){
+dAvg <- function(trips, latLng){
   "Find daily average for trip data over period of time.
   demand: demand dataframe"
-  dAvg <- trips %>% group_by(TRACT)
+  if (latLng){
+    dAvg <- trips %>% group_by(LAT) %>% group_by(LNG, .add = TRUE)
+  }
+  else {
+    dAvg <- trips %>% group_by(TRACT)
+  }
   if("AVAIL" %in% colnames(trips)){
     dAvg <- dAvg %>%
       summarize(meanTrips = mean(ADJTRIPS, na.rm = TRUE),
@@ -109,9 +114,11 @@ geoLatLng <- function(trips){
 
 genMap <- function(trips, latLng = FALSE, colors = 20){
   "Generate mapview for demand/pickup data"
-  trips <- trips %>% dAvg()
+  trips <- trips %>% dAvg(latLng)
   pal <- mapviewPalette("mapviewSpectralColors")
   if (latLng) {
+    print(trips)
+    print("to implement")
     trips <- geoLatLng(trips)
   }
   else {
@@ -128,7 +135,7 @@ demandExample <- function(latLng = FALSE){
   demand <- constData(fol, latLng = latLng)
   mv <- demand %>%
     filter(DAY %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")) %>%
-    genMap()
+    genMap(latLng)
   print(mv)
 }
 
@@ -137,9 +144,9 @@ pickupExample <- function(latLng = FALSE){
   fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
   pickup <- constData(fol, pickup = TRUE, latLng = latLng)
   mv <- pickup %>%
-    filter(DATE >= "2019-8-1" & DATE <= "2019-8-31") %>%
-    genMap()
+    filter(DATE >= "2019-7-1" & DATE <= "2019-7-31") %>%
+    genMap(latLng)
   print(mv)
 }
 
-demandExample()
+# pickupExample(TRUE)
