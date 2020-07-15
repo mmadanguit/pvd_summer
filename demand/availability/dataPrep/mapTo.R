@@ -22,7 +22,7 @@ mapCoord <- function(df, tracts){
   coords: coords to map
   censusTracts: tracts of the region"
   mappedTracts <- convCoord(df$lng, df$lat, tracts) #%>% # get right format
-  df <- mutate(df, TRACT = as.numeric(st_within(mappedTracts, tracts))) # find tracts
+  df <- mutate(df, TRACT = as.numeric(tracts$TRACT[as.numeric(within_points)])) # find tracts
   return(df)
 }
 
