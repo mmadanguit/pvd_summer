@@ -91,3 +91,12 @@ locationData <- read_csv(file) %>% mapToTract()
 preppedData <- prepCountData(locationData,start,end)
 intervalData <- getCountData(preppedData,start,end)
 write.csv(intervalData,"countData.csv",row.names=FALSE)
+
+start_times <- str_split_fixed(as.character(intervalData$START), " ", 2)
+end_times <- str_split_fixed(as.character(intervalData$END), " ", 2)
+intervalData <- intervalData %>% mutate(DATE=start_times[,1])
+intervalData$START <- start_times[,2]
+intervalData$END <- end_times[,2]
+intervalData$AVAIL <- difftime(paste(intervalData$DATE, intervalData$END),
+                               paste(intervalData$DATE, intervalData$START), units="min")
+add_column(DAY = weekdays(as.Date(intervalData$DATE)))
