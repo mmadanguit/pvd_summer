@@ -18,6 +18,7 @@ getPickups <- function(fol, latLng){
     pickups <- read(fol, "pickupsTRACT.csv") %>%
       group_by(TRACT)
   }
+  pickups <- pickups
   return(arrange(pickups, DATE, .by_group=TRUE))
 }
 
@@ -41,6 +42,11 @@ getAvail <- function(fol, latLng){
   return(availTime)
 }
 
+# corrLng <- function(lat, df){
+#   lng <- filter(df, lat == lat)$LNG
+#   return(lng)
+# }
+
 constData <- function(fol, pickup = FALSE, latLng = FALSE){
   "Construct demand/pickup dataframe
   fol: Folder path containing availability and pickups data
@@ -51,10 +57,31 @@ constData <- function(fol, pickup = FALSE, latLng = FALSE){
   if (pickup){
     return(pickups)
   }
+  print('a')
   availTime <- getAvail(fol, latLng) 
   if (latLng){ # only tracts in data
-    availTime <- filter(availTime, LAT %in% pickups$LAT | LNG %in% pickups$LNG)
-    pickups <- filter(pickups, LAT %in% availTime$LAT | LNG %in% pickups$LNG)
+    # pickupsF <- tibble(LAT = as.double(), LNG = as.double(), DATE = as.character(),
+    #                      TRIPS = as.double())
+    # print('b')
+    # for (lat in unique(pickups$LAT)){ # for each lat
+    #   print(lat)
+    #   items <- availTime %>% filter(LAT %in% availTime$LAT) %>%
+    #     filter(LNG %in% corrLng(lat, availTime))
+    #   pickupsF <- bind_rows(items)
+    # }
+    # pickups <- pickupsF
+    
+    # may already be in order, though pickups will for sure have to be done again
+    availTime <- availTime %>% arrange(LAT) %>% 
+      group_by(LAT) %>% arrange(LNG, .by_group)
+    pickups <- pickups %>% 
+      filter(LAT %in% availTime$LAT) %>% # select existing tracts
+      arrange(LAT) %>% group_by(LAT) %>%
+      arrange(LNG, .by_group) %>%
+      filter(LNG %in% availTime$LNG)
+    # still does not address doing by availTimes group
+    
+    print(pickups)
   }
   else { # tract
     availTime <- filter(availTime, TRACT %in% pickups$TRACT)
@@ -149,4 +176,4 @@ pickupExample <- function(latLng = FALSE){
   print(mv)
 }
 
-# pickupExample(TRUE)
+demandExample(TRUE)
