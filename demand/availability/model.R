@@ -4,19 +4,19 @@ library(mapview)
 
 getAvail <- function(fol){
   "Open, filter, and clean availability data"
-  availIntervals <- read_csv(paste(c(fol, "availIntervals.csv"), collapse='')) %>%
+  availIntervals <- read_csv(paste(c(fol, "availIntervalsTRACT.csv"), collapse='')) %>%
     group_by(TRACT) %>% 
     arrange(DATE, .by_group=TRUE)
   availTime <- availIntervals %>% 
-    select(c(TRACT, DATE, AVAIL)) %>% # time w/o intervals
+    select(c(TRACT, DATE, AVAIL, DAY)) %>% # time w/o intervals
     group_by(DATE, .add = TRUE) %>% 
-    summarize(AVAIL, AVAIL = sum(AVAIL)) %>% # find total avail for day
+    summarize(AVAIL, AVAIL = sum(AVAIL), DAY) %>% # find total avail for day
     distinct()
   return(availTime)
 }
 
 getPickups <- function(fol){
-  pickups <- read_csv(paste(c(fol, "pickupsSummary.csv"), collapse='')) %>%
+  pickups <- read_csv(paste(c(fol, "pickupsTRACT.csv"), collapse='')) %>%
     group_by(TRACT) %>% 
     arrange(DATE, .by_group=TRUE)
   return(pickups)
@@ -34,7 +34,7 @@ geomData <- function(trips){
 
 constData <- function(fol, pickup = FALSE){
   "Construct demand/pickup dataframe
-  fol: Folder path containing pickupsSummary.csv and availIntervals.csv
+  fol: Folder path containing availability and pickups data
   pickup: Pickup only model
   "
   pickups <- getPickups(fol)
@@ -101,11 +101,12 @@ demandExample <- function(){
 
 pickupExample <- function(){
   setwd("~/Documents/github/pvd_summer/") # working directory of main gh
-  # directory with summary data (availIntervals.csv, pickupsSummary.csv)
   fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
   pickup <- constData(fol, pickup = TRUE)
   mv <- pickup %>%
-    filter(DATE >= "2018-10-15" & DATE <= "2018-10-16") %>%
+    filter(DATE >= "2019-8-1" & DATE <= "2019-8-31") %>%
     genMap()
   print(mv)
 }
+
+demandExample()
