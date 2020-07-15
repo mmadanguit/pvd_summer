@@ -7,6 +7,7 @@ library(sf)
 library(mapview)
 source('census_data_example.R')
 source('demand/dropoffDemandModel.R')
+source('demand/availability/model.R')
 
 
 ui <- fluidPage(
@@ -63,13 +64,33 @@ ui <- fluidPage(
         )
       )
     ),
-    tabPanel("Demand Map",
-      titlePanel("Demand Map"),
-        mainPanel(
-          leafletOutput("demandMapPlot"), #This is where the demand map will go
-        )
+    # tabPanel("Dropoff Demand Map",
+    #   titlePanel("Dropoff Demand Map"),
+    #     mainPanel(
+    #       leafletOutput("dropoffDemandMapPlot"), #This is where the demand map will go
+    #     )
+    #   ),
+    tabPanel("Availability",
+             sidebarPanel(
+               dateRangeInput("availabilityDateRange", "Date Range to model",
+                              start = "2018-11-01",
+                              end = "2019-10-31",
+                              min = "2018-11-01",
+                              max = "2019-10-31"),
+               checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
+               checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
+             ),
+             titlePanel("Availability Maps"),
+             mainPanel(
+               h3("Demand Map"),
+               leafletOutput("demandMapPlot"), #This is where the map will go
+               hr(),
+               h3("Pickup Map"),
+               leafletOutput("pickupMapPlot"), #This is where the map will go
+             )
       )
     )
+  
   )
 
 # Define server logic to load, map, and label selected datasets
@@ -127,9 +148,58 @@ server <- function(input, output) {
     }
   })
   
+
+  
+  fol <- "/Users/nolan/Documents/" #Folder containing pickupsSummary.csv, availIntervals.csv, and tripsPerTract.csv
+  # output$dropoffDemandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
+  #   mv <- dropoffDemandMap(fol)
+  #   mv@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
+  # })
+  
   output$demandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
-    mv@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
+    date1 = input$availabilityDateRange[1] #Get the start and end dates to calculate model.R with
+    date2 = input$availabilityDateRange[2]
+    
+    
+    daysToInclude <- c() #Figure out what days to include to filter model.R output with
+    if(input$includeWeekdays[1]){
+      daysToInclude <- c(daysToInclude, c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"))
+    }
+    if(input$includeWeekends[1]){
+      daysToInclude <- c(daysToInclude, c("Saturday", "Sunday"))
+    }
+    
+    
+    demand <- constData(fol) #The actual modeling stuff from model.R
+    mvDemand <- demand %>%
+      filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
+      filter(DAY %in% daysToInclude) %>%
+      genMap()
+    mvDemand@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
   })
+  
+  
+  output$pickupMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
+    date1 = input$availabilityDateRange[1] #All pretty much the same as above.
+    date2 = input$availabilityDateRange[2]
+    
+    
+    daysToInclude <- c()
+    if(input$includeWeekdays[1]){
+      daysToInclude <- c(daysToInclude, c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"))
+    }
+    if(input$includeWeekends[1]){
+      daysToInclude <- c(daysToInclude, c("Saturday", "Sunday"))
+    }
+    
+    
+    pickup <- constData(fol, pickup = TRUE)
+      mvPickup <- pickup %>%
+        filter(DATE >= date1 & DATE <= date2) %>%
+        filter(DAY %in% daysToInclude) %>%
+        genMap()
+      mvPickup@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
+    })
 }
 
 shinyApp(ui=ui, server=server)
