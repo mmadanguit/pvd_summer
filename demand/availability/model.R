@@ -137,6 +137,8 @@ geoData <- function(trips){
 
 geoLatLng <- function(trips){
   "Build shape data for lat lng trip data"
+  #Currently in progress
+  return(st_as_sf(trips, coords = c("LNG","LAT"), crs=4326)) #Converts LAT/LON to geometry points
 }
 
 genMap <- function(trips, latLng = FALSE, colors = 20){

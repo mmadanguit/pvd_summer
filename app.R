@@ -5,12 +5,14 @@ library(tidyverse)
 library(tidycensus)
 library(sf)
 library(mapview)
+library(shinyjs)
 source('census_data_example.R')
 source('demand/dropoffDemandModel.R')
 source('demand/availability/model.R')
 
 
 ui <- fluidPage(
+  useShinyjs(),
   tabsetPanel(
     tabPanel("Census Data Map",
       # App title ----
@@ -79,6 +81,7 @@ ui <- fluidPage(
                               max = "2019-10-31"),
                checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
                checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
+               radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
              ),
              titlePanel("Availability Maps"),
              mainPanel(
@@ -95,6 +98,7 @@ ui <- fluidPage(
 
 # Define server logic to load, map, and label selected datasets
 server <- function(input, output) {
+  shinyjs::hide(id = "tractOrLatLng")
   # output$placeholder <- renderText("Placeholder")
   currentIds <- c()
   observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
@@ -168,9 +172,13 @@ server <- function(input, output) {
     if(input$includeWeekends[1]){
       daysToInclude <- c(daysToInclude, c("Saturday", "Sunday"))
     }
+    latLng = FALSE
+    if(input$tractOrLatLng == "latLng"){
+      latLng = TRUE
+    }
+    print(input$tractOrLatLng)
     
-    
-    demand <- constData(fol) #The actual modeling stuff from model.R
+    demand <- constData(fol, latLng = latLng) #The actual modeling stuff from model.R
     mvDemand <- demand %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
@@ -193,7 +201,7 @@ server <- function(input, output) {
     }
     
     
-    pickup <- constData(fol, pickup = TRUE)
+    pickup <- constData(fol, pickup = TRUE, latLng = FALSE)
       mvPickup <- pickup %>%
         filter(DATE >= date1 & DATE <= date2) %>%
         filter(DAY %in% daysToInclude) %>%
