@@ -2,53 +2,66 @@ library(tidyverse)
 library(sf)
 library(mapview)
 
-getAvail <- function(fol){
+read <- function(fol, file){
+  "Read csv file"
+  file <- read_csv(paste(c(fol, file), collapse=''))
+  return(file)
+}
+
+getPickups <- function(fol, latLng){
+  if (latLng){
+    pickups  <- read(fol, "pickupsLatLng.csv") %>%
+      group_by(LAT) %>%
+      group_by(LNG, .add = TRUE)
+  }
+  else {
+    pickups <- read(fol, "pickupsTRACT.csv") %>%
+      group_by(TRACT)
+  }
+  return(arrange(pickups, DATE, .by_group=TRUE))
+}
+
+getAvail <- function(fol, latLng){
   "Open, filter, and clean availability data"
-  availIntervals <- read_csv(paste(c(fol, "availIntervalsTRACT.csv"), collapse='')) %>%
-    group_by(TRACT) %>% 
-    arrange(DATE, .by_group=TRUE)
+  if (latLng){
+    availIntervals <- read(fol, "availIntervalsLatLng.csv") %>%
+      group_by(LAT) %>%
+      group_by(LNG, .add = TRUE)
+  }
+  else {
+    availIntervals <- read(fol, "availIntervalsTRACT.csv") %>%
+      group_by(TRACT)
+  }
+  availIntervals <- availIntervals %>% arrange(DATE, .by_group=TRUE)
   availTime <- availIntervals %>% 
-    select(c(TRACT, DATE, AVAIL, DAY)) %>% # time w/o intervals
+    select(-c(START, END)) %>% # time w/o intervals
     group_by(DATE, .add = TRUE) %>% 
     summarize(AVAIL, AVAIL = sum(AVAIL), DAY) %>% # find total avail for day
     distinct()
   return(availTime)
 }
 
-getPickups <- function(fol){
-  pickups <- read_csv(paste(c(fol, "pickupsTRACT.csv"), collapse='')) %>%
-    group_by(TRACT) %>% 
-    arrange(DATE, .by_group=TRUE)
-  return(pickups)
-}
-
-geomData <- function(trips){
-  "Add geometry data"
-  geoData <- readRDS("censusData/riDataGeo.Rds") %>% 
-    arrange(TRACT) %>% 
-    filter(as.logical(match(TRACT, trips$TRACT)))
-  trips <- trips %>%
-    add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME)
-  return(st_as_sf(trips))
-}
-
-constData <- function(fol, pickup = FALSE){
+constData <- function(fol, pickup = FALSE, latLng = FALSE){
   "Construct demand/pickup dataframe
   fol: Folder path containing availability and pickups data
   pickup: Pickup only model
+  latLng: Using latlng dataset
   "
-  pickups <- getPickups(fol)
-  if (!pickup){ 
-    availTime <- getAvail(fol) %>%
-      filter(TRACT %in% pickups$TRACT) # only tracts in data
-    pickups <- pickups %>%  
-      filter(TRACT %in% availTime$TRACT)
-    pickups$ADJTRIPS <- pickups$TRIPS/(availTime$AVAIL/960) # adjust for avail
-    return(add_column(availTime, ADJTRIPS = pickups$ADJTRIPS))
+  pickups <- getPickups(fol, latLng)
+  if (pickup){
+    return(pickups)
   }
-  else {
-    return(pickups) 
+  availTime <- getAvail(fol, latLng) 
+  if (latLng){ # only tracts in data
+    availTime <- filter(availTime, LAT %in% pickups$LAT | LNG %in% pickups$LNG)
+    pickups <- filter(pickups, LAT %in% availTime$LAT | LNG %in% pickups$LNG)
   }
+  else { # tract
+    availTime <- filter(availTime, TRACT %in% pickups$TRACT)
+    pickups <- filter(pickups, TRACT %in% availTime$TRACT)
+  }
+  pickups$ADJTRIPS <- pickups$TRIPS/(availTime$AVAIL/960)
+  return(add_column(availTime, ADJTRIPS = pickups$ADJTRIPS))
 }
 
 dAvg <- function(trips){
@@ -77,32 +90,52 @@ dAvg <- function(trips){
       drop_na()
   }
   dAvg[dAvg == Inf] <- NA
-  return(geomData(dAvg))
+  return(dAvg)
 }
 
-genMap <- function(trips, colors = 20){
+geoData <- function(trips){
+  "Add geometry data"
+  geoData <- readRDS("censusData/riDataGeo.Rds") %>% 
+    arrange(TRACT) %>% 
+    filter(as.logical(match(TRACT, trips$TRACT)))
+  trips <- trips %>%
+    add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME)
+  return(st_as_sf(trips))
+}
+
+geoLatLng <- function(trips){
+  "Build shape data for lat lng trip data"
+}
+
+genMap <- function(trips, latLng = FALSE, colors = 20){
   "Generate mapview for demand/pickup data"
   trips <- trips %>% dAvg()
   pal <- mapviewPalette("mapviewSpectralColors")
+  if (latLng) {
+    trips <- geoLatLng(trips)
+  }
+  else {
+    trips <- geoData(trips)
+  }
   mv <- mapview(trips, zcol = "meanTrips", col.regions = pal(colors))
   return(mv)
 }
 
-demandExample <- function(){
+demandExample <- function(latLng = FALSE){
   setwd("~/Documents/github/pvd_summer/") # working directory of main gh
   # directory with summary data (availSummary.csv, pickupsSummary.csv)
   fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
-  demand <- constData(fol)
+  demand <- constData(fol, latLng = latLng)
   mv <- demand %>%
     filter(DAY %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")) %>%
     genMap()
   print(mv)
 }
 
-pickupExample <- function(){
+pickupExample <- function(latLng = FALSE){
   setwd("~/Documents/github/pvd_summer/") # working directory of main gh
   fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
-  pickup <- constData(fol, pickup = TRUE)
+  pickup <- constData(fol, pickup = TRUE, latLng = latLng)
   mv <- pickup %>%
     filter(DATE >= "2019-8-1" & DATE <= "2019-8-31") %>%
     genMap()
