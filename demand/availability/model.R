@@ -42,11 +42,6 @@ getAvail <- function(fol, latLng){
   return(availTime)
 }
 
-# corrLng <- function(lat, df){
-#   lng <- filter(df, lat == lat)$LNG
-#   return(lng)
-# }
-
 constData <- function(fol, pickup = FALSE, latLng = FALSE){
   "Construct demand/pickup dataframe
   fol: Folder path containing availability and pickups data
@@ -57,38 +52,11 @@ constData <- function(fol, pickup = FALSE, latLng = FALSE){
   if (pickup){
     return(pickups)
   }
-  print('a')
-  availTime <- getAvail(fol, latLng) 
-  if (latLng){ # only tracts in data
-    # pickupsF <- tibble(LAT = as.double(), LNG = as.double(), DATE = as.character(),
-    #                      TRIPS = as.double())
-    # print('b')
-    # for (lat in unique(pickups$LAT)){ # for each lat
-    #   print(lat)
-    #   items <- availTime %>% filter(LAT %in% availTime$LAT) %>%
-    #     filter(LNG %in% corrLng(lat, availTime))
-    #   pickupsF <- bind_rows(items)
-    # }
-    # pickups <- pickupsF
-    
-    # may already be in order, though pickups will for sure have to be done again
-    availTime <- availTime %>% arrange(LAT) %>% 
-      group_by(LAT) %>% arrange(LNG, .by_group)
-    pickups <- pickups %>% 
-      filter(LAT %in% availTime$LAT) %>% # select existing tracts
-      arrange(LAT) %>% group_by(LAT) %>%
-      arrange(LNG, .by_group) %>%
-      filter(LNG %in% availTime$LNG)
-    # still does not address doing by availTimes group
-    
-    print(pickups)
-  }
-  else { # tract
-    availTime <- filter(availTime, TRACT %in% pickups$TRACT)
-    pickups <- filter(pickups, TRACT %in% availTime$TRACT)
-  }
-  pickups$ADJTRIPS <- pickups$TRIPS/(availTime$AVAIL/960)
-  return(add_column(availTime, ADJTRIPS = pickups$ADJTRIPS))
+  demand <- getAvail(fol, latLng) %>% 
+    left_join(pickups)
+  demand <- demand %>%
+    add_column(ADJTRIPS = demand$TRIPS/(demand$AVAIL/57600))
+  return(demand)
 }
 
 dAvg <- function(trips, latLng){
@@ -176,4 +144,4 @@ pickupExample <- function(latLng = FALSE){
   print(mv)
 }
 
-demandExample(TRUE)
+demandExample()
