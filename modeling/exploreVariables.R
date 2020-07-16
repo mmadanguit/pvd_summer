@@ -13,6 +13,16 @@ for (i in 1:length(filenames)) {
   assign(filenames[i], read.csv(paths[i]))
 }
 
+# Remove index column and convert weekday and season to factors
+trainData <- trainData %>%
+  select(-X) %>%
+  mutate(weekday = as.factor(weekday),
+         season = as.factor(season))
+testData <- testData %>%
+  select(-X) %>%
+  mutate(weekday = as.factor(weekday),
+         season = as.factor(season))
+
 # Explore response and explanatory variables -----------------------------------
 dir <- "/home/marion/PVDResearch/Plots" # Set directory to save plots
 
