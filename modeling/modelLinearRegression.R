@@ -2,6 +2,7 @@
 library(dplyr)
 library(ggfortify)
 library(ggplot2)
+library(ggpubr)
 library(tidyverse)
 
 # Import train and test data ---------------------------------------------------
@@ -27,13 +28,13 @@ rTrain <- round(summary(lm)$adj.r.squared, digits = 4)
 # Create diagnostic plots 
 plotDiag <- autoplot(lm)
 
-# Use models to predict values on test data ------------------------------------
-# Use linear model to predict values on test data
-predict <- predict(lm, newdata = select(testData, -date))
+# Use model to predict values --------------------------------------------------
+# Use model to predict values on test data
+predict <- predict(lm, newdata = select(testData, -date))^2
 # Compute r-squared value
 rTest <- round(cor(predict, testData$count)^2, digits = 4)
 
-# Create plots -----------------------------------------------------------------
+# Plot hourly average usage ----------------------------------------------------
 # Calculate hourly average scooter usage
 calculateAvg <- function(data) {
   data <- data %>%
@@ -48,7 +49,7 @@ createPlot <- function(predictedData, actualData, rValue) {
     as_tibble() %>% 
     mutate(count = value,
            time = actualData$time)
-  # Calculate hourly average scooter
+  # Calculate hourly average scooter usage
   predictedAvg <- calculateAvg(predictedData) %>%
     mutate(id = "predicted")
   actualAvg <- calculateAvg(actualData) %>%
@@ -59,29 +60,81 @@ createPlot <- function(predictedData, actualData, rValue) {
   plot <- ggplot(data = avg, aes(x = time, y = count, group = id)) +
     geom_line(aes(linetype = id)) + 
     labs(title = "Hourly Average Scooter Usage",
-         subtitle = paste("R-squared:", rValue)) +
+         subtitle = paste("Linear Regression Model", 
+                          "\nR-squared:", rValue)) +
     theme(axis.text.x = element_text(angle = 90))
   return(plot)
 }
 
-plot1 <- createPlot(predict, testData, rTest)
+plotUsage <- createPlot(predict, testData, rTest)
 
-predict <- predict(lm, data = select(trainData, -date))
-rTrain <- round(cor(predict, trainData$count)^2, digits = 4)
-plot2 <- createPlot(predict, trainData, rTrain)
+# Plot residuals vs variables --------------------------------------------------
+createPlotResiduals <- function(data, variable) {
+  # Plot residuals vs variables
+  plot <- ggplot(data, aes(x, y)) +
+    geom_point() +
+    geom_smooth(method = "lm") +
+    xlab(variable)
+  return(plot)
+}
+
+timeData <- data.frame(x = trainData$time, y = residuals(lm))
+weekdayData <- data.frame(x = trainData$weekday, y = residuals(lm))
+seasonData <- data.frame(x = trainData$season, y = residuals(lm))
+AWNDData <- data.frame(x = trainData$AWND, y = residuals(lm))
+PRCPData <- data.frame(x = trainData$PRCP, y = residuals(lm))
+TAVGData <- data.frame(x = trainData$TAVG, y = residuals(lm))
+lastCountData <- data.frame(x = sqrt(trainData$last_count), y = residuals(lm))
+
+plotTime <- createPlotResiduals(timeData, "time") 
+plotWeekday <- createPlotResiduals(weekdayData, "weekday")
+plotSeason <- createPlotResiduals(seasonData, "time")
+plotAWND <- createPlotResiduals(AWNDData, "AWND")
+plotPRCP <- createPlotResiduals(PRCPData, "PRCP")
+plotTAVG <- createPlotResiduals(TAVGData, "TAVG")
+plotLastCount <- createPlotResiduals(lastCountData, "sqrt(last_count)")
 
 # Save plots -------------------------------------------------------------------
 plots <- mget(ls(pattern="plot"))
 dir <- "/home/marion/PVDResearch/Plots"
-filenames <- c("Correlation_matrix", 
-               "Correlation_matrix_all", 
-               "Diagnostic_plot_of_full_linear_model",
-               "Diagnostic_plot_of_partial_linear_model",
-               "Diagnostic_plot_of_simple_linear_model",
-               "Hourly_average_scooter_usage_full",
-               "Distribution_of_response_variable")
+filenames <- c("Residuals_vs_AWND",
+               "Diagnostic_plot_of_linear_model",
+               "Residuals_vs_last_count",
+               "Residuals_vs_PRCP",
+               "Residuals_vs_season",
+               "Residuals_vs_TAVG",
+               "Residuals_vs_time",
+               "Hourly_average_scooter_usage_linear",
+               "Residuals_vs_weekday")
 paths <- file.path(dir, paste(filenames, ".png", sep = ""))
 
 for(i in 1:length(plots)){
   invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
 }
+
+
+
+
+# Understand the weird line in residuals vs fitted -----------------------------
+countData <- data.frame(x = predict(lm, select(trainData, -date)), y = residuals(lm))
+plot <- createPlotResiduals(countData, "sqrt(last_count)")
+
+newline = data.frame(x = seq(-2.25, 6, length.out = nrow(countData)), 
+                     y = seq(-5, 3.75, length.out = nrow(countData)))
+
+# takes a line defined by a set of points along a line, and a set of points, and
+# returns the minimum (orthogonal) Euclidian distance between all pts and
+# the line.
+euclid_min_d <- function(line, pts){
+  d <- vector(mode = "integer", length = nrow(pts))
+  for(i in 1:nrow(pts)){
+    d[i] = min(( abs(abs(pts$x[i]) - abs(line$x)) + abs(abs(pts$y[i]) - abs(line$y)) )^(.5))
+  }
+  return(d)
+}
+
+dist <- euclid_min_d(newline, countData)
+ind <- which(dist < 0.25)
+ex <- countData[ind,]
+plotTest <- createPlotResiduals(countData, "test")
+plotEx <- createPlotResiduals(ex, "test")
