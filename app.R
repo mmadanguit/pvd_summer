@@ -82,6 +82,12 @@ ui <- fluidPage(
                checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
                checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
                radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
+               radioButtons("zCol", "zCol", choices = c(
+                 "meanTrips" = "meanTrips", 
+                 "medTrips" = "medTrips",
+                 "stdTrips" = "stdTrips",
+                 "zeroTrips" = "zeroTrips"
+                 )),
              ),
              titlePanel("Availability Maps"),
              mainPanel(
@@ -182,7 +188,7 @@ server <- function(input, output) {
     mvDemand <- demand %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
-      genMap()
+      genMap(zcol=input$zCol)
     mvDemand@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
   })
   
@@ -205,7 +211,7 @@ server <- function(input, output) {
       mvPickup <- pickup %>%
         filter(DATE >= date1 & DATE <= date2) %>%
         filter(DAY %in% daysToInclude) %>%
-        genMap()
+        genMap(zcol=input$zCol)
       mvPickup@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
     })
 }
