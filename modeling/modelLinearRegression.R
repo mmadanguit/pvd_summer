@@ -15,10 +15,8 @@ for (i in 1:length(filenames)) {
 }
 
 # Remove index column 
-trainData <- trainData %>%
-  select(-X)
-testData <- testData %>%
-  select(-X)
+trainData <- select(trainData, -X) 
+testData <- select(testData, -X) 
 
 # Build linear model -----------------------------------------------------------
 # Build linear model using all the variables except date
@@ -74,7 +72,8 @@ createPlotResiduals <- function(data, variable) {
   plot <- ggplot(data, aes(x, y)) +
     geom_point() +
     geom_smooth(method = "lm") +
-    xlab(variable)
+    xlab(variable) +
+    ylab("residuals")
   return(plot)
 }
 
@@ -112,29 +111,35 @@ for(i in 1:length(plots)){
   invisible(mapply(ggsave, file = paths[i], plot = plots[i]))
 }
 
-
-
-
 # Understand the weird line in residuals vs fitted -----------------------------
-countData <- data.frame(x = predict(lm, select(trainData, -date)), y = residuals(lm))
-plot <- createPlotResiduals(countData, "sqrt(last_count)")
+# Select data points that fall on the line y=-x+1
+weirdData <- data.frame(trainData, 
+                        predicted_count = predict(lm, select(trainData, -date)),
+                        residual = residuals(lm)) %>%
+  filter(residual < -predicted_count+1) %>%
+  mutate(x = predicted_count, 
+         y = residual)
 
-newline = data.frame(x = seq(-2.25, 6, length.out = nrow(countData)), 
-                     y = seq(-5, 3.75, length.out = nrow(countData)))
+# Plot points to check that they all fall on the line
+plotWeird <- createPlotResiduals(sample, "fitted values")
 
-# takes a line defined by a set of points along a line, and a set of points, and
-# returns the minimum (orthogonal) Euclidian distance between all pts and
-# the line.
-euclid_min_d <- function(line, pts){
-  d <- vector(mode = "integer", length = nrow(pts))
-  for(i in 1:nrow(pts)){
-    d[i] = min(( abs(abs(pts$x[i]) - abs(line$x)) + abs(abs(pts$y[i]) - abs(line$y)) )^(.5))
-  }
-  return(d)
+# Plot distribution of explanatory variables 
+createHist <- function(data, variable) {
+  ggplot(data = data, aes(x = eval(as.symbol(variable)))) +
+    geom_histogram(bins = 10) +
+    xlab(variable)
 }
 
-dist <- euclid_min_d(newline, countData)
-ind <- which(dist < 0.25)
-ex <- countData[ind,]
-plotTest <- createPlotResiduals(countData, "test")
-plotEx <- createPlotResiduals(ex, "test")
+plotWeekday <- createHist(weirdData, "weekday")
+plotSeason <- createHist(weirdData, "season")
+plotAWND <- createHist(weirdData, "AWND")
+plotPRCP <- createHist(weirdData, "PRCP")
+plotTAVG <- createHist(weirdData, "TAVG")
+plotLastCount <- createHist(weirdData, "last_count")
+
+plotExplanatory <- ggarrange(plotWeekday, plotSeason, plotAWND, plotPRCP, plotTAVG, plotLastCount)
+
+# Save plot
+filename <- "Distribution_of_explanatory_variables_weird"
+path <- file.path(dir, paste(filename, ".png", sep = ""))
+ggsave(path)
