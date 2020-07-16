@@ -20,7 +20,7 @@ testData <- testData %>%
 
 # Build regression tree --------------------------------------------------------
 # Grow tree
-fit <- rpart(count ~ ., data = select(trainData, -date), method = "anova")
+fit <- rpart(sqrt(count)~.+sqrt(last_count)-last_count, data = select(trainData, -date), method = "anova")
 
 printcp(fit) # Display the results
 plotcp(fit) # Visualize cross-validation results
@@ -48,7 +48,7 @@ post(pfit, file = "/home/marion/PVDResearch/Plots/ptreeFull.ps",
      title = "Pruned Regression Tree for Overall Usage")
 
 # Use tree to predict values on test data --------------------------------------
-predict <- predict(pfit, newdata = testData)
+predict <- predict(pfit, newdata = testData)^2
 rValue <- round(cor(predict, testData$count)^2, digits = 4)
 
 # Create plots -----------------------------------------------------------------
@@ -77,7 +77,8 @@ createPlot <- function(predictedData, actualData, rValue) {
   plot <- ggplot(data = avg, aes(x = time, y = count, group = id)) +
     geom_line(aes(linetype = id)) + 
     labs(title = "Hourly Average Scooter Usage",
-         subtitle = paste("R-squared:", rValue)) +
+         subtitle = paste("Decision Tree Model",
+                          "\nR-squared:", rValue)) +
     theme(axis.text.x = element_text(angle = 90))
   return(plot)
 }
@@ -86,6 +87,6 @@ plot <- createPlot(predict, testData, rValue)
 
 # Save plot 
 dir <- "/home/marion/PVDResearch/Plots"
-filename <- "Hourly_average_scooter_usage_full_tree"
+filename <- "Hourly_average_scooter_usage_decision_tree"
 path <- file.path(dir, paste(filename, ".png", sep = ""))
 ggsave(path)
