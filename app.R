@@ -82,17 +82,32 @@ ui <- fluidPage(
                checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
                checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
                radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
-               radioButtons("zCol", "zCol", choices = c(
+               radioButtons("zColDemand", "zColDemand", choices = c(
+                 "meanTrips" = "meanTrips", 
+                 "medTrips" = "medTrips",
+                 "stdTrips" = "stdTrips",
+                 "zeroTrips" = "zeroTrips",
+                 "meanAvailTime" = "meanAvailTime",
+                 "medAvailTime" = "medAvailTime",
+                 "stdAvailTime" = "stdAvailTime",
+                 "zeroAvailTime" = "zeroAvailTime",
+                 "naAvailTime" = "naAvailTime",
+                 "meanAvail" = "meanAvail",
+                 "medAvail" = "medAvail",
+                 "stdAvail" = "stdAvail",
+                 "zeroAvail" = "zeroAvail"
+                 )),
+               radioButtons("zColPickup", "zColPickup", choices = c(
                  "meanTrips" = "meanTrips", 
                  "medTrips" = "medTrips",
                  "stdTrips" = "stdTrips",
                  "zeroTrips" = "zeroTrips"
-                 )),
+               )),
              ),
              titlePanel("Availability Maps"),
              mainPanel(
                h3("Demand Map"),
-               leafletOutput("demandMapPlot"), #This is where the map will go
+              leafletOutput("demandMapPlot"), #This is where the map will go 
                hr(),
                h3("Pickup Map"),
                leafletOutput("pickupMapPlot"), #This is where the map will go
@@ -188,7 +203,7 @@ server <- function(input, output) {
     mvDemand <- demand %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
-      genMap(zcol=input$zCol)
+      genMap(zcol=input$zColDemand)
     mvDemand@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
   })
   
@@ -211,7 +226,7 @@ server <- function(input, output) {
       mvPickup <- pickup %>%
         filter(DATE >= date1 & DATE <= date2) %>%
         filter(DAY %in% daysToInclude) %>%
-        genMap(zcol=input$zCol)
+        genMap(zcol=input$zColPickup)
       mvPickup@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
     })
 }
