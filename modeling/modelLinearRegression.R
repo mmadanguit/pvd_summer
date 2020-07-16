@@ -14,9 +14,15 @@ for (i in 1:length(filenames)) {
   assign(filenames[i], read.csv(paths[i]))
 }
 
-# Remove index column 
-trainData <- select(trainData, -X) 
-testData <- select(testData, -X) 
+# Remove index column and convert weekday and season to factors
+trainData <- trainData %>%
+  select(-X) %>%
+  mutate(weekday = as.factor(weekday),
+         season = as.factor(season))
+testData <- testData %>%
+  select(-X) %>%
+  mutate(weekday = as.factor(weekday),
+         season = as.factor(season))
 
 # Build linear model -----------------------------------------------------------
 # Build linear model using all the variables except date
