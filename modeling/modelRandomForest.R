@@ -1,6 +1,6 @@
 # Load relevant libraries ------------------------------------------------------
 library(ggplot2)
-library(rpart)
+library(randomForest)
 library(tidyverse)
 
 # Import train and test data ---------------------------------------------------
@@ -13,42 +13,16 @@ for (i in 1:length(filenames)) {
 }
 
 # Remove index column 
-trainData <- trainData %>%
-  select(-X)
-testData <- testData %>%
-  select(-X)
+trainData <- select(trainData, -X)
+testData <- select(testData, -X) 
 
-# Build regression tree --------------------------------------------------------
-# Grow tree
-fit <- rpart(sqrt(count)~.+sqrt(last_count)-last_count, data = select(trainData, -date), method = "anova")
-
-printcp(fit) # Display the results
-plotcp(fit) # Visualize cross-validation results
-summary(fit) # Detailed summary of splits
-
-# Plot and save tree
-plot(fit, uniform = TRUE,
-     main = "Regression Tree for Overall Usage")
-text(fit, use.n = TRUE, all = TRUE, cex = .8)
-
-# Create attractive postscript plot of tree
-post(fit, file = "/home/marion/PVDResearch/Plots/treeFull.ps",
-     title = "Regression Tree for Overall Usage")
-
-# Prune the tree
-pfit <- prune(fit, cp = 0.014) # from cptable   
-
-# Plot the pruned tree
-plot(pfit, uniform = TRUE,
-     main = "Pruned Regression Tree for Overall Usage")
-text(pfit, use.n = TRUE, all = TRUE, cex = .8)
-
-# Create attractive postscript plot of tree
-post(pfit, file = "/home/marion/PVDResearch/Plots/ptreeFull.ps",
-     title = "Pruned Regression Tree for Overall Usage")
+# Build random forest ----------------------------------------------------------
+fit <- randomForest(sqrt(count)~.+sqrt(last_count)-last_count, data = select(trainData, -date))
+print(fit) # View results
+importance(fit) # Importance of each predictor
 
 # Use tree to predict values on test data --------------------------------------
-predict <- predict(pfit, newdata = testData)^2
+predict <- predict(fit, newdata = testData)^2
 rValue <- round(cor(predict, testData$count)^2, digits = 4)
 
 # Create plots -----------------------------------------------------------------
@@ -77,7 +51,7 @@ createPlot <- function(predictedData, actualData, rValue) {
   plot <- ggplot(data = avg, aes(x = time, y = count, group = id)) +
     geom_line(aes(linetype = id)) + 
     labs(title = "Hourly Average Scooter Usage",
-         subtitle = paste("Decision Tree Model",
+         subtitle = paste("Random Forests Model",
                           "\nR-squared:", rValue)) +
     theme(axis.text.x = element_text(angle = 90))
   return(plot)
@@ -87,6 +61,6 @@ plot <- createPlot(predict, testData, rValue)
 
 # Save plot 
 dir <- "/home/marion/PVDResearch/Plots"
-filename <- "Hourly_average_scooter_usage_decision_tree"
+filename <- "Hourly_average_scooter_usage_random_forest"
 path <- file.path(dir, paste(filename, ".png", sep = ""))
 ggsave(path)

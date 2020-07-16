@@ -15,7 +15,7 @@ numGeo <- 10 # Number of groups to create in geographic clustering
 numUsage <- 8 # Number of groups to create in usage pattern clustering
 neighbors <- 8 # Number of neighboring nodes to based relabeling off of 
 
-seed <- 50 # Set random seed based on clusterSpectralDetermineRandom.R
+seed <- 126 # Set random seed based on clusterSpectralDetermineRandom.R
 # seed <- 2
 set.seed(seed)
 
@@ -260,7 +260,7 @@ relabelClusters <- function(data, numGeo, neighbors) {
     # Determine most common cluster label of neighbors
     # cluster <- mode(neighborNodes)
     cluster <- which.max(totalNeighborDistances)
-    if(as.integer(tail(table(totalNeighborDistances), n=1)) = 1){
+    if (as.integer(tail(table(totalNeighborDistances), n=1)) == 1) {
       relabeledData$sc[i] <- as.numeric(cluster)
     }
     # print(which.max(totalNeighborDistances))
