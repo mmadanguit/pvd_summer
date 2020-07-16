@@ -121,12 +121,12 @@ genMap <- function(trips, latLng = FALSE, zcol = "meanTrips", colors = 20){
   if (latLng) {
     print(trips)
     print("to implement")
-    trips <- geoLatLng(trips)
+    tripData <- geoLatLng(trips)
   }
   else {
-    trips <- geoData(trips)
+    tripData <- geoData(trips)
   }
-  mv <- mapview(trips, zcol = zcol, col.regions = pal(colors), scientific = FALSE)
+  mv <- mapview(tripData, zcol = zcol, col.regions = pal(colors), scientific = FALSE)
   return(mv)
 }
 
