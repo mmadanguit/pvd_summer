@@ -25,12 +25,12 @@ getPickups <- function(fol, latLng){
 getAvail <- function(fol, latLng){
   "Open, filter, and clean availability data"
   if (latLng){
-    availIntervals <- read(fol, "availIntervalsLatLng.csv") %>%
+    availIntervals <- read(fol, "intervalCountsLATLNG.csv") %>%
       group_by(LAT) %>%
       group_by(LNG, .add = TRUE)
   }
   else {
-    availIntervals <- read(fol, "availIntervalsTRACT.csv") %>%
+    availIntervals <- read(fol, "intervalCountsTRACT.csv") %>%
       group_by(TRACT)
   }
   availIntervals <- availIntervals %>% arrange(DATE, .by_group=TRUE)
@@ -49,13 +49,14 @@ constData <- function(fol, pickup = FALSE, latLng = FALSE){
   latLng: Using latlng dataset
   "
   pickups <- getPickups(fol, latLng)
+  # need to join with demand to select the same columns
   if (pickup){
     return(pickups)
   }
   demand <- getAvail(fol, latLng) %>% 
     left_join(pickups)
   demand <- demand %>%
-    add_column(ADJTRIPS = demand$TRIPS/(demand$AVAIL/57600))
+    add_column(ADJTRIPS = demand$TRIPS/(demand$AVAIL/960))
   return(demand)
 }
 
@@ -131,7 +132,7 @@ demandExample <- function(latLng = FALSE){
   fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
   demand <- constData(fol, latLng = latLng)
   mv <- demand %>%
-    filter(DAY %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")) %>%
+    # filter(DAY %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")) %>%
     genMap(latLng)
   print(mv)
 }
@@ -141,7 +142,7 @@ pickupExample <- function(latLng = FALSE){
   fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
   pickup <- constData(fol, pickup = TRUE, latLng = latLng)
   mv <- pickup %>%
-    filter(DATE >= "2019-7-1" & DATE <= "2019-7-31") %>%
+    # filter(DATE >= "2019-7-1" & DATE <= "2019-7-31") %>%
     genMap(latLng)
   print(mv)
 }
