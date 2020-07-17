@@ -1,6 +1,7 @@
 library(tidyverse)
 library(sf)
 library(mapview)
+library(pracma)
 
 read <- function(fol, file){
   "Read csv file"
@@ -126,7 +127,16 @@ genMap <- function(trips, latLng = FALSE, zcol = "meanTrips", colors = 20){
   else {
     tripData <- geoData(trips)
   }
-  mv <- mapview(tripData, zcol = zcol, col.regions = pal(colors), scientific = FALSE)
+  data <- as.data.frame(tripData)[zcol]
+  nonzeroData <- filter(data, data[zcol] > 0) #finding the nonzero min makes data with 0s play better. 0 values are always default gray.
+  # print(data)
+  min <- min(nonzeroData) - 0.0000000001 # the subtraction makes sure the nonzero min is included
+  max <- max(nonzeroData) + 0.0000000001 # the addition makes sure the max is included
+
+  # print(min)
+  # print(max)
+  mv <- mapview(tripData, zcol = zcol, col.regions = pal(colors), at = logseq(min, max), scientific = TRUE) #at controls the color gradient and makes it log
+  #The legend colors are wrong. I think the color for a tract with value x is the legend color (ln(x)/ln(max))*max, or something along those lines but incorporating the min of the colorscale.
   return(mv)
 }
 
