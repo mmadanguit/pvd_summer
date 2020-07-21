@@ -38,7 +38,9 @@ getAvail <- function(fol, latLng){
   availTime <- availIntervals %>% 
     select(-c(START, END)) %>% # time w/o intervals
     group_by(DATE, .add = TRUE) %>% 
-    summarize(AVAIL = sum(AVAIL), COUNT = sum(COUNT)/60) %>%
+    mutate(COUNTTIME = COUNT*AVAIL) %>%
+    filter(COUNT > 0) %>%
+    summarize(AVAIL = sum(AVAIL), COUNT = sum(COUNTTIME)/60) %>%
     distinct()
   return(availTime)
 }
@@ -141,7 +143,7 @@ genMap <- function(trips, latLng = FALSE, zcol = "meanTrips", colors = 20){
 }
 
 demandExample <- function(latLng = FALSE, zcol = "meanTrips"){
-  setwd("~/Documents/github/pvd_summer/") # working directory of main gh
+  #setwd("~/Documents/github/pvd_summer/") # working directory of main gh
   # directory with summary data (availSummary.csv, pickupsSummary.csv)
   fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
   demand <- constData(fol, latLng = latLng)
