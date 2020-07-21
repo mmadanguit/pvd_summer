@@ -120,7 +120,7 @@ ui <- fluidPage(
 
 # Define server logic to load, map, and label selected datasets
 server <- function(input, output) {
-  shinyjs::hide(id = "tractOrLatLng")
+  # shinyjs::hide(id = "tractOrLatLng")
   # output$placeholder <- renderText("Placeholder")
   currentIds <- c()
   observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
@@ -204,7 +204,7 @@ server <- function(input, output) {
     mvDemand <- demand %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
-      genMap(zcol=input$zColDemand)
+      genMap(latLng = latLng, zcol=input$zColDemand)
     mvDemand@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
   })
   
@@ -221,13 +221,16 @@ server <- function(input, output) {
     if(input$includeWeekends[1]){
       daysToInclude <- c(daysToInclude, c("Saturday", "Sunday"))
     }
+    latLng = FALSE
+    if(input$tractOrLatLng == "latLng"){
+      latLng = TRUE
+    }
     
-    
-    pickup <- constData(fol, pickup = TRUE, latLng = FALSE)
+    pickup <- constData(fol, pickup = TRUE, latLng = latLng)
       mvPickup <- pickup %>%
         filter(DATE >= date1 & DATE <= date2) %>%
         filter(DAY %in% daysToInclude) %>%
-        genMap(zcol=input$zColPickup)
+        genMap(latLng = latLng, zcol=input$zColPickup)
       mvPickup@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
     })
 }
