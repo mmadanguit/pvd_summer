@@ -34,8 +34,7 @@ getAvail <- function(fol, latLng){
     availIntervals <- read(fol, "intervalCountsTRACT.csv") %>%
       group_by(TRACT)
   }
-  availIntervals <- availIntervals %>% arrange(DATE, .by_group=TRUE)
-  availTime <- availIntervals %>% 
+  availTime <- availIntervals %>% arrange(DATE, .by_group=TRUE) %>% 
     select(-c(START, END)) %>% # time w/o intervals
     group_by(DATE, .add = TRUE) %>% 
     mutate(COUNTTIME = COUNT*AVAIL) %>%
@@ -111,10 +110,39 @@ geoData <- function(trips){
   return(st_as_sf(trips))
 }
 
+latLngRect <- function(westLng, eastLng, southLat, northLat) {
+  df <- tibble("lng" = as.numeric(), "lat" = as.numeric(), "ID" = as.numeric())
+  for (id in 1:length(westLng)){
+    df <- df %>% 
+      # goes upper left, bottom left, bottom right, upper right
+      add_row(lng = westLng[id], lat = northLat[id], ID = id) %>% # upper left
+      add_row(lng = westLng[id], lat = southLat[id], ID = id) %>% # lower left
+      add_row(lng = eastLng[id], lat = southLat[id], ID = id) %>% # lower right
+      add_row(lng = eastLng[id], lat = northLat[id], ID = id)
+  }
+  return(df)
+}
+
 geoLatLng <- function(trips){
   "Build shape data for lat lng trip data"
-  #Currently in progress
-  return(st_as_sf(trips, coords = c("LNG","LAT"), crs=4326)) #Converts LAT/LON to geometry points
+  rd <- 0.005 # rounding value
+  westLng <- trips$LNG-rd/2
+  eastLng <- trips$LNG+rd/2
+  southLat <- trips$LAT-rd/2
+  northLat <- trips$LAT+rd/2
+  df <- latLngRect(westLng, eastLng, southLat, northLat)
+  
+  ri_tracts <- readRDS("censusData/riDataGeo.Rds")
+  points <- st_as_sf(df, coords=c("lng", "lat"),crs=st_crs(ri_tracts))
+  polys <- st_sf(
+    aggregate(
+      points$geometry,
+      list(points$ID),
+      function(g){
+        st_cast(st_combine(g),"POLYGON")}
+    ))
+  trips$geometry <- polys$geometry
+  return(st_as_sf(trips))
 }
 
 genMap <- function(trips, latLng = FALSE, zcol = "meanTrips", colors = 20){
@@ -122,8 +150,6 @@ genMap <- function(trips, latLng = FALSE, zcol = "meanTrips", colors = 20){
   trips <- trips %>% dAvg(latLng)
   pal <- mapviewPalette("mapviewSpectralColors")
   if (latLng) {
-    print(trips)
-    print("to implement")
     tripData <- geoLatLng(trips)
   }
   else {
@@ -131,14 +157,10 @@ genMap <- function(trips, latLng = FALSE, zcol = "meanTrips", colors = 20){
   }
   data <- as.data.frame(tripData)[zcol]
   nonzeroData <- filter(data, data[zcol] > 0) #finding the nonzero min makes data with 0s play better. 0 values are always default gray.
-  # print(data)
   min <- min(nonzeroData) - 0.0000000001 # the subtraction makes sure the nonzero min is included
   max <- max(nonzeroData) + 0.0000000001 # the addition makes sure the max is included
-
-  # print(min)
-  # print(max)
   mv <- mapview(tripData, zcol = zcol, col.regions = pal(colors), at = logseq(min, max), scientific = TRUE) #at controls the color gradient and makes it log
-  #The legend colors are wrong. I think the color for a tract with value x is the legend color (ln(x)/ln(max))*max, or something along those lines but incorporating the min of the colorscale.
+  # The legend colors are wrong. I think the color for a tract with value x is the legend color (ln(x)/ln(max))*max, or something along those lines but incorporating the min of the colorscale.
   return(mv)
 }
 
@@ -163,4 +185,4 @@ pickupExample <- function(latLng = FALSE, zcol = "meanTrips"){
   print(mv)
 }
 
-demandExample(zcol = "meanAvail")
+# demandExample(zcol = "meanTrips", latLng = TRUE)
