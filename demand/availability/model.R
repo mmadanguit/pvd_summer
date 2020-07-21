@@ -38,7 +38,7 @@ getAvail <- function(fol, latLng){
     select(-c(START, END)) %>% # time w/o intervals
     group_by(DATE, .add = TRUE) %>% 
     # filter out ones with zero count
-    summarize(AVAIL = sum(AVAIL), COUNT = sum(COUNT)) %>%
+    summarize(AVAIL = sum(AVAIL), COUNT = sum(COUNT), DAY) %>%
     # only sum avail where count > 0
     distinct()
   return(availTime)
@@ -130,7 +130,7 @@ geoLatLng <- function(trips){
   eastLng <- trips$LNG+rd/2
   southLat <- trips$LAT-rd/2
   northLat <- trips$LAT+rd/2
-  df <- buildLatLng(westLng, eastLng, southLat, northLat)
+  df <- latLngRect(westLng, eastLng, southLat, northLat)
   
   ri_tracts <- readRDS("censusData/riDataGeo.Rds")
   points <- st_as_sf(df, coords=c("lng", "lat"),crs=st_crs(ri_tracts))
@@ -185,4 +185,4 @@ pickupExample <- function(latLng = FALSE, zcol = "meanTrips"){
   print(mv)
 }
 
-demandExample(zcol = "meanTrips", latLng = TRUE)
+# demandExample(zcol = "meanTrips", latLng = TRUE)
