@@ -40,7 +40,7 @@ getAvail <- function(fol, latLng){
     group_by(DATE, .add = TRUE) %>% 
     mutate(COUNTTIME = COUNT*AVAIL) %>%
     filter(COUNT > 0) %>%
-    summarize(AVAIL = sum(AVAIL), COUNT = sum(COUNTTIME)/60) %>%
+    summarize(AVAIL = sum(AVAIL), COUNT = sum(COUNTTIME)) %>%
     distinct()
   return(availTime)
 }
