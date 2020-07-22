@@ -2,6 +2,10 @@ library(tidyverse)
 library(sf)
 library(mapview)
 library(pracma)
+source('/home/marion/PVDResearch/PVDResearch/demand/availability/createCDF.R')
+
+setwd("/home/marion/PVDResearch/PVDResearch/")
+fol <- "/home/marion/PVDResearch/Data/demandData/"
 
 read <- function(fol, file){
   "Read csv file"
@@ -41,7 +45,21 @@ getAvail <- function(fol, latLng){
     filter(COUNT > 0) %>%
     summarize(AVAIL = sum(AVAIL)/960, COUNT = sum(COUNTTIME)/960) %>%
     distinct()
-  return(availTime)
+  availCD <- availIntervals %>% 
+    # Convert time to seconds
+    mutate(START = period_to_seconds(hms(START)),
+           END = period_to_seconds(hms(END))) %>%
+    # Calculate cumulative distribution of availability interval
+    mutate(AVAILCD = cdf(END)-cdf(START),
+           AVAILSMOOTH = cdfSmooth(END)-cdfSmooth(START)) %>%
+    # Sum cumulative distributions 
+    filter(COUNT > 0) %>%
+    select(-c(START, END)) %>%
+    group_by(DATE, .add = TRUE) %>%
+    summarise(AVAILCD = sum(AVAILCD)/(cdf(22*60*60)-cdf(6*60*60)),
+              AVAILSMOOTH = sum(AVAILSMOOTH)/(cdfSmooth(22*60*60)-cdfSmooth(6*60*60))) %>%
+    distinct()
+  return(merge(availTime, availCD))
 }
 
 constData <- function(fol, pickup = FALSE, latLng = FALSE){
@@ -51,15 +69,15 @@ constData <- function(fol, pickup = FALSE, latLng = FALSE){
   latLng: Using latlng dataset
   "
   pickups <- getPickups(fol, latLng)
-  # need to join with demand to select the same columns
-  if (pickup){
-    return(pickups)
-  }
   demand <- getAvail(fol, latLng) %>% 
     left_join(pickups)
   demand <- demand %>% 
-    add_column(ADJTRIPS = demand$TRIPS/demand$AVAIL)
-    
+    mutate(ADJTRIPS = demand$TRIPS/demand$AVAIL,
+           ADJTRIPSCD = demand$TRIPS/demand$AVAILCD, 
+           ADJTRIPSSMOOTH = demand$TRIPS/demand$AVAILSMOOTH,
+           ADJTRIPSMIN = pmin(ADJTRIPS, ADJTRIPSCD))
+  demand$ADJTRIPSCAP <- ifelse(demand$ADJTRIPSMIN > 5*demand$TRIPS,
+                               5*demand$TRIPS, demand$ADJTRIPSMIN)
   return(demand)
 }
 
