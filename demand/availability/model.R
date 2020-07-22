@@ -58,7 +58,7 @@ constData <- function(fol, pickup = FALSE, latLng = FALSE){
   demand <- getAvail(fol, latLng) %>% 
     left_join(pickups)
   demand <- demand %>% 
-    add_column(ADJTRIPS = demand$TRIPS/(demand$AVAIL/960))
+    add_column(ADJTRIPS = demand$TRIPS/demand$AVAIL)
     
   return(demand)
 }
@@ -165,12 +165,12 @@ genMap <- function(trips, latLng = FALSE, zcol = "meanTrips", colors = 20){
 }
 
 demandExample <- function(latLng = FALSE, zcol = "avail"){
-  #setwd("~/Documents/github/pvd_summer/") # working directory of main gh
+  setwd("~/Documents/github/pvd_summer/") # working directory of main gh
   # directory with summary data (availSummary.csv, pickupsSummary.csv)
   fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
   demand <- constData(fol, latLng = latLng)
   mv <- demand %>%
-    ffilter(DATE >= "2019-5-1" & DATE <= "2019-5-2") %>%
+    # filter(DATE >= "2019-5-1" & DATE <= "2019-5-2") %>%
     genMap(latLng, zcol = zcol)
   print(mv)
 }
@@ -185,4 +185,4 @@ pickupExample <- function(latLng = FALSE, zcol = "meanTrips"){
   print(mv)
 }
 
-# demandExample(zcol = "meanTrips", latLng = TRUE)
+demandExample(zcol = "meanTrips", latLng = TRUE)
