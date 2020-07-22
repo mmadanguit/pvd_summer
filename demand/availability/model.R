@@ -2,10 +2,7 @@ library(tidyverse)
 library(sf)
 library(mapview)
 library(pracma)
-source('/home/marion/PVDResearch/PVDResearch/demand/availability/createCDF.R')
-
-setwd("/home/marion/PVDResearch/PVDResearch/")
-fol <- "/home/marion/PVDResearch/Data/demandData/"
+source("demand/availability/createCDF.R")
 
 read <- function(fol, file){
   "Read csv file"
@@ -44,21 +41,21 @@ getAvail <- function(fol, latLng){
     mutate(COUNTTIME = COUNT*AVAIL) %>%
     filter(COUNT > 0) %>%
     summarize(AVAIL = sum(AVAIL)/960, COUNT = sum(COUNTTIME)/960) %>%
-    distinct()
+    distinct() %>%
+    filter(AVAIL > .1)
   availCD <- availIntervals %>% 
     # Convert time to seconds
     mutate(START = period_to_seconds(hms(START)),
            END = period_to_seconds(hms(END))) %>%
     # Calculate cumulative distribution of availability interval
-    mutate(AVAILCD = cdf(END)-cdf(START),
-           AVAILSMOOTH = cdfSmooth(END)-cdfSmooth(START)) %>%
+    mutate(AVAILCD = cdf(END)-cdf(START)) %>%
     # Sum cumulative distributions 
     filter(COUNT > 0) %>%
     select(-c(START, END)) %>%
     group_by(DATE, .add = TRUE) %>%
-    summarise(AVAILCD = sum(AVAILCD)/(cdf(22*60*60)-cdf(6*60*60)),
-              AVAILSMOOTH = sum(AVAILSMOOTH)/(cdfSmooth(22*60*60)-cdfSmooth(6*60*60))) %>%
-    distinct()
+    summarise(AVAILCD = sum(AVAILCD)/(cdf(22*60*60)-cdf(6*60*60))) %>%
+    distinct() %>%
+    filter(AVAILCD > .1)
   return(merge(availTime, availCD))
 }
 
@@ -73,11 +70,18 @@ constData <- function(fol, pickup = FALSE, latLng = FALSE){
     left_join(pickups)
   demand <- demand %>% 
     mutate(ADJTRIPS = demand$TRIPS/demand$AVAIL,
-           ADJTRIPSCD = demand$TRIPS/demand$AVAILCD, 
-           ADJTRIPSSMOOTH = demand$TRIPS/demand$AVAILSMOOTH,
+           ADJTRIPSCD = demand$TRIPS/demand$AVAILCD,
            ADJTRIPSMIN = pmin(ADJTRIPS, ADJTRIPSCD))
   demand$ADJTRIPSCAP <- ifelse(demand$ADJTRIPSMIN > 5*demand$TRIPS,
                                5*demand$TRIPS, demand$ADJTRIPSMIN)
+  demand$ADJTRIPSCAP10 <- ifelse(demand$ADJTRIPSMIN > 10*demand$TRIPS,
+                               10*demand$TRIPS, demand$ADJTRIPSMIN)
+  demand$ADJTRIPSCAPR <- ifelse(demand$ADJTRIPS > 10*demand$TRIPS,
+                                 10*demand$TRIPS, demand$ADJTRIPS)
+  demand$ADJTRIPSCAPCD <- ifelse(demand$ADJTRIPSCD > 10*demand$TRIPS,
+                                10*demand$TRIPS, demand$ADJTRIPSCD)
+  # ADJTRIPS min is just the minimum is the minimum of ADJTRIPS or ADJTRIPS CD
+  # ADJTRIPS CHECKS if it is greater than 5 times recorded
   return(demand)
 }
 
@@ -96,6 +100,37 @@ dAvg <- function(trips, latLng){
                 medTrips = median(ADJTRIPS, na.rm = TRUE),
                 stdTrips = sd(ADJTRIPS, na.rm = TRUE),
                 zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE),
+                
+                meanTripsCD = mean(ADJTRIPSCD, na.rm = TRUE),
+                medTripsCD = median(ADJTRIPSCD, na.rm = TRUE),
+                stdTripsCD = sd(ADJTRIPSCD, na.rm = TRUE),
+                zeroTripsCD = sum(ADJTRIPSCD == 0, na.rm = TRUE),
+                
+                meanTripsMIN = mean(ADJTRIPSMIN, na.rm = TRUE),
+                medTripsMIN = median(ADJTRIPSMIN, na.rm = TRUE),
+                stdTripsMIN = sd(ADJTRIPSMIN, na.rm = TRUE),
+                zeroTripsMIN = sum(ADJTRIPSMIN == 0, na.rm = TRUE),
+                
+                meanTripsCAP = mean(ADJTRIPSCAP, na.rm = TRUE),
+                medTripsCAP = median(ADJTRIPSCAP, na.rm = TRUE),
+                stdTripsCAP = sd(ADJTRIPSCAP, na.rm = TRUE),
+                zeroTripsCAP = sum(ADJTRIPSCAP == 0, na.rm = TRUE),
+                
+                meanTripsCAP10 = mean(ADJTRIPSCAP10, na.rm = TRUE),
+                medTripsCAP10 = median(ADJTRIPSCAP10, na.rm = TRUE),
+                stdTripsCAP10 = sd(ADJTRIPSCAP10, na.rm = TRUE),
+                zeroTripsCAP10 = sum(ADJTRIPSCAP10 == 0, na.rm = TRUE),
+                
+                meanTripsCAPR = mean(ADJTRIPSCAPR, na.rm = TRUE),
+                medTripsCAPR = median(ADJTRIPSCAPR, na.rm = TRUE),
+                stdTripsCAPR = sd(ADJTRIPSCAPR, na.rm = TRUE),
+                zeroTripsCAPR = sum(ADJTRIPSCAPR == 0, na.rm = TRUE),
+                
+                meanTripsCAPCD = mean(ADJTRIPSCAPCD, na.rm = TRUE),
+                medTripsCAPCD = median(ADJTRIPSCAPCD, na.rm = TRUE),
+                stdTripsCAPCD = sd(ADJTRIPSCAPCD, na.rm = TRUE),
+                zeroTripsCAPCD = sum(ADJTRIPSCAPCD == 0, na.rm = TRUE),
+                
                 meanAvailTime = mean(AVAIL, na.rm = TRUE),
                 medAvailTime = median(AVAIL, na.rm = TRUE),
                 stdAvailTime = sd(AVAIL, na.rm = TRUE),
@@ -188,7 +223,8 @@ demandExample <- function(latLng = FALSE, zcol = "avail"){
   fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
   demand <- constData(fol, latLng = latLng)
   mv <- demand %>%
-    # filter(DATE >= "2019-5-1" & DATE <= "2019-5-2") %>%
+    # filter(DAY %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")) %>%
+    # filter(DATE >= "2019-5-1" & DATE <= "2019-5-31") %>%
     genMap(latLng, zcol = zcol)
   print(mv)
 }
@@ -203,4 +239,4 @@ pickupExample <- function(latLng = FALSE, zcol = "meanTrips"){
   print(mv)
 }
 
-demandExample(zcol = "meanTrips", latLng = TRUE)
+demandExample(zcol = "meanTrips", latLng = FALSE)

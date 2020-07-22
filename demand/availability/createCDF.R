@@ -3,7 +3,7 @@ library(lubridate)
 library(tidyverse)
 
 # Import trip data ---------------------------------------------------
-dir <- "/home/marion/PVDResearch/Data/mobilityData/cleanData"
+dir <- "~/Documents/syncthing/school/summerResearch/data/availDemand"
 filename <- "tripsYear1WithTracts"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))
@@ -40,27 +40,27 @@ usagePlot <- ggplot(usageData, aes(x = startSec, y = count, group = 1)) +
 cdf <- ecdf(tripData$startSec)
 plot(cdf)
 
-smoothFunc <- function(adj = 0.1) {
-  "Smooth cdf by generating a kernel density estimate"
-  d = tripData$startSec
-  # Generate kernel density estimate of data
-  dens = density(d, adjust = adj, from = min(d), to = max(d))
-  dens = data.frame(x = dens$x, y = dens$y)
-  # Plot kernel density
-  ggplot(as.data.frame(d), aes(d)) + 
-    geom_line(data = dens, aes(x = x, y = cumsum(y)/sum(y))) +
-    labs(title = paste("adj =", adj))
-  return(data.frame(x = dens$x, y = cumsum(dens$y)/sum(dens$y)))
-}
-
-cdfSmooth <- function(times){
-  "Calculates cd estimates based on smoothed cdf
-  times: vector storing trip times in seconds"
-  d <- smoothFunc()
-  estimates <- c()
-  for (i in 1:length(times)) {
-    ind <- which.min(abs(d$x-times[i])) # Find closest value
-    estimates[i] <- d$y[ind]
-  }
-  return(estimates)
-}
+# smoothFunc <- function(adj = 0.1) {
+#   "Smooth cdf by generating a kernel density estimate"
+#   d = tripData$startSec
+#   # Generate kernel density estimate of data
+#   dens = density(d, adjust = adj, from = min(d), to = max(d))
+#   dens = data.frame(x = dens$x, y = dens$y)
+#   # Plot kernel density
+#   ggplot(as.data.frame(d), aes(d)) + 
+#     geom_line(data = dens, aes(x = x, y = cumsum(y)/sum(y))) +
+#     labs(title = paste("adj =", adj))
+#   return(data.frame(x = dens$x, y = cumsum(dens$y)/sum(dens$y)))
+# }
+# 
+# cdfSmooth <- function(times){
+#   "Calculates cd estimates based on smoothed cdf
+#   times: vector storing trip times in seconds"
+#   d <- smoothFunc()
+#   estimates <- c()
+#   for (i in 1:length(times)) {
+#     ind <- which.min(abs(d$x-times[i])) # Find closest value
+#     estimates[i] <- d$y[ind]
+#   }
+#   return(estimates)
+# }
