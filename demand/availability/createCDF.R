@@ -3,7 +3,8 @@ library(lubridate)
 library(tidyverse)
 
 # Import trip data ---------------------------------------------------
-dir <- "~/Documents/syncthing/school/summerResearch/data/availDemand"
+# dir <- "~/Documents/syncthing/school/summerResearch/data/availDemand"
+dir <- "" #Folder containing pickupsSummary.csv, availIntervals.csv, and tripsPerTract.csv
 filename <- "tripsYear1WithTracts"
 path <- file.path(dir, paste(filename, ".csv", sep = ""))
 assign(filename, read.csv(path))

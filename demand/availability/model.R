@@ -160,7 +160,7 @@ geoData <- function(trips){
     filter(as.logical(match(TRACT, trips$TRACT)))
   trips <- trips %>%
     add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME)
-  return(st_as_sf(trips))
+  return(st_as_sf(trips, crs = 4326))
 }
 
 latLngRect <- function(westLng, eastLng, southLat, northLat) {
@@ -186,7 +186,7 @@ geoLatLng <- function(trips){
   df <- latLngRect(westLng, eastLng, southLat, northLat)
   
   ri_tracts <- readRDS("censusData/riDataGeo.Rds")
-  points <- st_as_sf(df, coords=c("lng", "lat"),crs=st_crs(ri_tracts))
+  points <- st_as_sf(df, coords=c("lng", "lat"),crs = 4326)
   polys <- st_sf(
     aggregate(
       points$geometry,
@@ -217,26 +217,26 @@ genMap <- function(trips, latLng = FALSE, zcol = "meanTrips", colors = 20){
   return(mv)
 }
 
-demandExample <- function(latLng = FALSE, zcol = "avail"){
-  setwd("~/Documents/github/pvd_summer/") # working directory of main gh
-  # directory with summary data (availSummary.csv, pickupsSummary.csv)
-  fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
-  demand <- constData(fol, latLng = latLng)
-  mv <- demand %>%
-    # filter(DAY %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")) %>%
-    # filter(DATE >= "2019-5-1" & DATE <= "2019-5-31") %>%
-    genMap(latLng, zcol = zcol)
-  print(mv)
-}
-
-pickupExample <- function(latLng = FALSE, zcol = "meanTrips"){
-  setwd("~/Documents/github/pvd_summer/") # working directory of main gh
-  fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
-  pickup <- constData(fol, pickup = TRUE, latLng = latLng)
-  mv <- pickup %>%
-    # filter(DATE >= "2019-7-1" & DATE <= "2019-7-31") %>%
-    genMap(latLng, zcol = zcol)
-  print(mv)
-}
-
-demandExample(zcol = "meanTrips", latLng = FALSE)
+# demandExample <- function(latLng = FALSE, zcol = "avail"){
+#   # setwd("~/Documents/github/pvd_summer/") # working directory of main gh
+#   # directory with summary data (availSummary.csv, pickupsSummary.csv)
+#   # fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
+#   demand <- constData(fol, latLng = latLng)
+#   mv <- demand %>%
+#     # filter(DAY %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")) %>%
+#     # filter(DATE >= "2019-5-1" & DATE <= "2019-5-31") %>%
+#     genMap(latLng, zcol = zcol)
+#   print(mv)
+# }
+# 
+# pickupExample <- function(latLng = FALSE, zcol = "meanTrips"){
+#   # setwd("~/Documents/github/pvd_summer/") # working directory of main gh
+#   # fol <- "~/Documents/syncthing/school/summerResearch/data/availDemand/"
+#   pickup <- constData(fol, pickup = TRUE, latLng = latLng)
+#   mv <- pickup %>%
+#     # filter(DATE >= "2019-7-1" & DATE <= "2019-7-31") %>%
+#     genMap(latLng, zcol = zcol)
+#   print(mv)
+# }
+# 
+# demandExample(zcol = "meanTrips", latLng = FALSE)
