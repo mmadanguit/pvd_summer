@@ -4,10 +4,12 @@ library(tidyverse)
 
 # Import trip data ---------------------------------------------------
 # dir <- "~/Documents/syncthing/school/summerResearch/data/availDemand"
-dir <- "" #Folder containing pickupsSummary.csv, availIntervals.csv, and tripsPerTract.csv
-filename <- "tripsYear1WithTracts"
-path <- file.path(dir, paste(filename, ".csv", sep = ""))
-assign(filename, read.csv(path))
+# dir <- "" #Folder containing pickupsSummary.csv, availIntervals.csv, and tripsPerTract.csv
+fol <- ""
+filename <- "tripsYear1WithTracts.csv"
+# path <- file.path(dir, paste(filename, ".csv", sep = ""))
+# assign(tripsYear1WithTracts, read.csv(filename))
+tripsYear1WithTracts <- read.csv(filename)
 
 tripData <- tripsYear1WithTracts %>%
     # Consider only trips that last at least 3 minutes

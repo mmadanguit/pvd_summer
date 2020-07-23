@@ -200,7 +200,7 @@ server <- function(input, output) {
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    print(input$tractOrLatLng)
+    # print(input$tractOrLatLng)
     
     demand <- constData(fol, latLng = latLng) #The actual modeling stuff from model.R
     mvDemand <- demand %>%
