@@ -40,7 +40,7 @@ round_any <- function(x, accuracy) {
 roundLatLng <- function(df){
   "Round lat lng"
  df <- df %>% 
-   mutate(lat = round_any(df$lat, 0.005), lng = round_any(df$lng, 0.005))
+   mutate(lat = round_any(df$lat, 0.01), lng = round_any(df$lng, 0.01))
  return(df)
 }
 
@@ -63,3 +63,8 @@ undoFakeTract <- function(df){
 # file <- "~/Documents/syncthing/school/summerResearch/data/availDemand/locations.csv"
 # locations <- read_csv(file)
 # a <- roundLatLng(locations) %>% fakeTract()
+
+#file = "trips.csv"
+#tracts <- getTracts("Ri")
+#pickups <- read.csv(file) %>% splitTimeCol() %>% drop_na()
+#mappedTracts <- convCoord(pickups$start_longitude, pickups$start_latitude, tracts)
