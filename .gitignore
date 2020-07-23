@@ -37,3 +37,10 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+#Data files
+intervalCountsLATLNG.csv
+intervalCountsTRACT.csv
+pickupsLatLng.csv
+pickupsTRACT.csv
+tripsYear1WithTracts.csv
