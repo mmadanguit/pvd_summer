@@ -42,7 +42,7 @@ availTotal <- function(fol, latLng) {
   avail <- getAvail(fol, latLng)
   availTotal <- avail %>%
     group_by(DATE, .add = TRUE) %>% 
-    summarize(AVAILPCT = sum(AVAIL)/(16*60), # Calculate percent of day that at least one scooter was available
+    summarize(AVAILPCT = sum(AVAILTIME)/(16*60), # Calculate percent of day that at least one scooter was available
               COUNTTIME = sum(COUNTTIME)/(16*60), # Calculate amount of time (in days) that scooters were available for in total
               CDSUM = sum(AVAILCD)/(cdf(22*60)-cdf(6*60))) # Calculate percent of daily scooter usage that occurred
   return(availTotal) 
