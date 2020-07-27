@@ -60,6 +60,8 @@ constData <- function(fol, pickup = FALSE, latLng = FALSE){
   demand <- availTotal %>% 
     mutate(ADJTRIPS = pmin(5*TRIPS, TRIPS/AVAILPCT, TRIPS/CDSUM)) 
   demand$ADJTRIPS[is.na(demand$ADJTRIPS)] <- 0 # Handle NA values
+  demand <- demand %>% 
+    filter(!is.na(TRIPS))
   return(demand)
 }
 
