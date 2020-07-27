@@ -223,12 +223,15 @@ server <- function(input, output) {
     mvDemand <- demand %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
-      genMap(latLng = latLng, zcol=input$zColDemand)
+      genMap(latLng = latLng, zcol=input$zColDemand, pickup == FALSE)
     mvDemand@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
   })
   
   
   output$pickupMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
+    req(input$demandTRACT)
+    req(input$demandLatLng)
+    
     date1 = input$availabilityDateRange[1] #All pretty much the same as above.
     date2 = input$availabilityDateRange[2]
     
@@ -245,11 +248,14 @@ server <- function(input, output) {
       latLng = TRUE
     }
     
-    pickup <- constData(fol, pickup = TRUE, latLng = latLng)
-      mvPickup <- pickup %>%
-        filter(DATE >= date1 & DATE <= date2) %>%
-        filter(DAY %in% daysToInclude) %>%
-        genMap(latLng = latLng, zcol=input$zColPickup)
+    pickup <- read.csv(input$demandTRACT$datapath)
+    if(latLng == TRUE){
+      pickup <- read.csv(input$demandLatLng$datapath)
+    }
+    mvPickup <- pickup %>%
+      filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
+      filter(DAY %in% daysToInclude) %>%
+      genMap(latLng = latLng, zcol=input$zColDemand, pickup = TRUE)
       mvPickup@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
     })
 }
