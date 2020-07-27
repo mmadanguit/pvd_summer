@@ -15,6 +15,7 @@ source('demand/availability/model.R')
 
 ui <- fluidPage(
   useShinyjs(),
+  options(shiny.maxRequestSize = 30*1024^2),
   tabsetPanel(
     # tabPanel("Census Data Map",
     #   # App title ----
@@ -77,6 +78,14 @@ ui <- fluidPage(
     #   ),
     tabPanel("Availability",
              sidebarPanel(
+               # fileInput("pickupsTRACT", "Choose pickupsTRACT.csv",
+               #           multiple = FALSE,
+               #           accept = c("text/csv",
+               #                      "text/comma-separated-values")),
+               fileInput("intervalCountsTRACT", "Choose intervalCountsTRACT.csv",
+                         multiple = FALSE,
+                         accept = c("text/csv",
+                                    "text/comma-separated-values")),
                dateRangeInput("availabilityDateRange", "Date Range to model",
                               start = "2018-11-01",
                               end = "2019-10-31",
@@ -185,6 +194,8 @@ server <- function(input, output) {
   # })
   
   output$demandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
+    req(input$intervalCountsTRACT)
+    
     date1 = input$availabilityDateRange[1] #Get the start and end dates to calculate model.R with
     date2 = input$availabilityDateRange[2]
     
@@ -201,8 +212,9 @@ server <- function(input, output) {
       latLng = TRUE
     }
     # print(input$tractOrLatLng)
+    print(input$intervalCountsTRACT$datapath)
     
-    demand <- constData(fol, latLng = latLng) #The actual modeling stuff from model.R
+    demand <- constData(input$intervalCountsTRACT$datapath, latLng = latLng) #The actual modeling stuff from model.R
     mvDemand <- demand %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
