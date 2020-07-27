@@ -7,7 +7,7 @@ fol <- "/home/marion/PVDResearch/Data/demandData/"
 demandLatLng  <- read.csv(paste0(fol, "demandLatLng.csv")) 
 demandTRACT  <- read.csv(paste0(fol, "demandTRACT.csv")) 
 
-avg <- function(trips, latLng = FALSE, pickup = FALSE) {
+avg <- function(trips, latLng = FALSE, type = "demand") {
   "Find daily average for trip data over period of time.
   trips: demand dataframe"
   if (latLng) {
@@ -16,20 +16,13 @@ avg <- function(trips, latLng = FALSE, pickup = FALSE) {
   else {
     avg <- trips %>% group_by(TRACT)
   }
-  if (pickup) { # Create summary statistics for pickup data
-    avg <- avg %>%
-      summarize(meanTrips = mean(TRIPS, na.rm = TRUE),
-                medTrips = median(TRIPS, na.rm = TRUE),
-                stdTrips = sd(TRIPS, na.rm = TRUE),
-                zeroTrips = sum(TRIPS == 0, na.rm = TRUE))
-  } 
-  else { # Create summary statistics for demand data
+  if (type == "demand") { # Create summary statistics for demand data
     avg <- avg %>%
       summarize(meanTrips = mean(ADJTRIPS, na.rm = TRUE),
                 medTrips = median(ADJTRIPS, na.rm = TRUE),
                 stdTrips = sd(ADJTRIPS, na.rm = TRUE),
                 zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE),
-
+                
                 meanAvailPct = mean(AVAILPCT, na.rm = TRUE),
                 medAvailPct = median(AVAILPCT, na.rm = TRUE),
                 stdAvailPct = sd(AVAILPCT, na.rm = TRUE),
@@ -38,6 +31,20 @@ avg <- function(trips, latLng = FALSE, pickup = FALSE) {
                 medAvail = median(COUNTTIME, na.rm = TRUE), 
                 stdAvail = sd(COUNTTIME, na.rm = TRUE),
                 zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE))
+  } 
+  else if (type == "pickup") { # Create summary statistics for pickup data
+    avg <- avg %>%
+      summarize(meanTrips = mean(TRIPS, na.rm = TRUE),
+                medTrips = median(TRIPS, na.rm = TRUE),
+                stdTrips = sd(TRIPS, na.rm = TRUE),
+                zeroTrips = sum(TRIPS == 0, na.rm = TRUE))
+  }
+  else if (type == "difference") { # Create summary statistics for difference in pickups and demand
+    avg <- avg %>%
+      summarize(meanTrips = mean(ADJTRIPS-TRIPS, na.rm = TRUE),
+                medTrips = median(ADJTRIPS-TRIPS, na.rm = TRUE),
+                stdTrips = sd(ADJTRIPS-TRIPS, na.rm = TRUE),
+                zeroTrips = sum(ADJTRIPS-TRIPS == 0, na.rm = TRUE))
   }
   avg <- avg %>% mutate_if(is.numeric, round, 3) %>% drop_na()
   avg[avg == Inf] <- NA
@@ -89,9 +96,9 @@ geoLatLng <- function(trips) {
   return(st_as_sf(trips))
 }
 
-genMap <- function(trips, latLng = FALSE, pickup = FALSE, zcol = "meanTrips", colors = 20) {
+genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 20) {
   "Generate mapview for demand/pickup data"
-  trips <- trips %>% avg(latLng, pickup)
+  trips <- trips %>% avg(latLng, type)
   pal <- mapviewPalette("mapviewSpectralColors")
   if (latLng) {
     tripData <- geoLatLng(trips)
@@ -108,4 +115,4 @@ genMap <- function(trips, latLng = FALSE, pickup = FALSE, zcol = "meanTrips", co
   return(mv)
 }
 
-genMap(demandTRACT, latLng = FALSE, pickup = TRUE, zcol = "meanTrips")
+genMap(demandTRACT, latLng = FALSE, type = "difference", zcol = "meanTrips")
