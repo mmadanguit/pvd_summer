@@ -78,11 +78,11 @@ ui <- fluidPage(
     #   ),
     tabPanel("Availability",
              sidebarPanel(
-               # fileInput("pickupsTRACT", "Choose pickupsTRACT.csv",
-               #           multiple = FALSE,
-               #           accept = c("text/csv",
-               #                      "text/comma-separated-values")),
-               fileInput("intervalCountsTRACT", "Choose intervalCountsTRACT.csv",
+               fileInput("demandTRACT", "Choose demandTRACT.csv",
+                         multiple = FALSE,
+                         accept = c("text/csv",
+                                    "text/comma-separated-values")),
+               fileInput("demandLatLng", "Choose demandLatLng.csv",
                          multiple = FALSE,
                          accept = c("text/csv",
                                     "text/comma-separated-values")),
@@ -98,16 +98,16 @@ ui <- fluidPage(
                  "meanTrips" = "meanTrips", 
                  "medTrips" = "medTrips",
                  "stdTrips" = "stdTrips",
-                 "zeroTrips" = "zeroTrips",
-                 "meanAvailTime" = "meanAvailTime",
-                 "medAvailTime" = "medAvailTime",
-                 "stdAvailTime" = "stdAvailTime",
-                 "zeroAvailTime" = "zeroAvailTime",
-                 "naAvailTime" = "naAvailTime",
-                 "meanAvail" = "meanAvail",
-                 "medAvail" = "medAvail",
-                 "stdAvail" = "stdAvail",
-                 "zeroAvail" = "zeroAvail"
+                 "zeroTrips" = "zeroTrips"
+                 # "meanAvailTime" = "meanAvailTime",
+                 # "medAvailTime" = "medAvailTime",
+                 # "stdAvailTime" = "stdAvailTime",
+                 # "zeroAvailTime" = "zeroAvailTime",
+                 # "naAvailTime" = "naAvailTime",
+                 # "meanAvail" = "meanAvail",
+                 # "medAvail" = "medAvail",
+                 # "stdAvail" = "stdAvail",
+                 # "zeroAvail" = "zeroAvail"
                  )),
                radioButtons("zColPickup", "zColPickup", choices = c(
                  "meanTrips" = "meanTrips", 
@@ -194,7 +194,8 @@ server <- function(input, output) {
   # })
   
   output$demandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
-    req(input$intervalCountsTRACT)
+    req(input$demandTRACT)
+    req(input$demandLatLng)
     
     date1 = input$availabilityDateRange[1] #Get the start and end dates to calculate model.R with
     date2 = input$availabilityDateRange[2]
@@ -212,9 +213,13 @@ server <- function(input, output) {
       latLng = TRUE
     }
     # print(input$tractOrLatLng)
-    print(input$intervalCountsTRACT$datapath)
+    # print(input$demandTRACT$datapath)
     
-    demand <- constData(input$intervalCountsTRACT$datapath, latLng = latLng) #The actual modeling stuff from model.R
+    # demand <- constData(input$intervalCountsTRACT$datapath, latLng = latLng) #The actual modeling stuff from model.R
+    demand <- read.csv(input$demandTRACT$datapath)
+    if(latLng == TRUE){
+      demand <- read.csv(input$demandLatLng$datapath)
+    }
     mvDemand <- demand %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
