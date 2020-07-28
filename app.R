@@ -15,6 +15,7 @@ source('demand/availability/model.R')
 
 ui <- fluidPage(
   useShinyjs(),
+  options(shiny.maxRequestSize = 30*1024^2),
   tabsetPanel(
     # tabPanel("Census Data Map",
     #   # App title ----
@@ -77,6 +78,14 @@ ui <- fluidPage(
     #   ),
     tabPanel("Availability",
              sidebarPanel(
+               fileInput("demandTRACT", "Choose demandTRACT.csv",
+                         multiple = FALSE,
+                         accept = c("text/csv",
+                                    "text/comma-separated-values")),
+               fileInput("demandLatLng", "Choose demandLatLng.csv",
+                         multiple = FALSE,
+                         accept = c("text/csv",
+                                    "text/comma-separated-values")),
                dateRangeInput("availabilityDateRange", "Date Range to model",
                               start = "2018-11-01",
                               end = "2019-10-31",
@@ -89,16 +98,16 @@ ui <- fluidPage(
                  "meanTrips" = "meanTrips", 
                  "medTrips" = "medTrips",
                  "stdTrips" = "stdTrips",
-                 "zeroTrips" = "zeroTrips",
-                 "meanAvailTime" = "meanAvailTime",
-                 "medAvailTime" = "medAvailTime",
-                 "stdAvailTime" = "stdAvailTime",
-                 "zeroAvailTime" = "zeroAvailTime",
-                 "naAvailTime" = "naAvailTime",
-                 "meanAvail" = "meanAvail",
-                 "medAvail" = "medAvail",
-                 "stdAvail" = "stdAvail",
-                 "zeroAvail" = "zeroAvail"
+                 "zeroTrips" = "zeroTrips"
+                 # "meanAvailTime" = "meanAvailTime",
+                 # "medAvailTime" = "medAvailTime",
+                 # "stdAvailTime" = "stdAvailTime",
+                 # "zeroAvailTime" = "zeroAvailTime",
+                 # "naAvailTime" = "naAvailTime",
+                 # "meanAvail" = "meanAvail",
+                 # "medAvail" = "medAvail",
+                 # "stdAvail" = "stdAvail",
+                 # "zeroAvail" = "zeroAvail"
                  )),
                radioButtons("zColPickup", "zColPickup", choices = c(
                  "meanTrips" = "meanTrips", 
@@ -185,6 +194,9 @@ server <- function(input, output) {
   # })
   
   output$demandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
+    req(input$demandTRACT)
+    req(input$demandLatLng)
+    
     date1 = input$availabilityDateRange[1] #Get the start and end dates to calculate model.R with
     date2 = input$availabilityDateRange[2]
     
@@ -201,17 +213,25 @@ server <- function(input, output) {
       latLng = TRUE
     }
     # print(input$tractOrLatLng)
+    # print(input$demandTRACT$datapath)
     
-    demand <- constData(fol, latLng = latLng) #The actual modeling stuff from model.R
+    # demand <- constData(input$intervalCountsTRACT$datapath, latLng = latLng) #The actual modeling stuff from model.R
+    demand <- read.csv(input$demandTRACT$datapath)
+    if(latLng == TRUE){
+      demand <- read.csv(input$demandLatLng$datapath)
+    }
     mvDemand <- demand %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
-      genMap(latLng = latLng, zcol=input$zColDemand)
+      genMap(latLng = latLng, zcol=input$zColDemand, pickup == FALSE)
     mvDemand@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
   })
   
   
   output$pickupMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
+    req(input$demandTRACT)
+    req(input$demandLatLng)
+    
     date1 = input$availabilityDateRange[1] #All pretty much the same as above.
     date2 = input$availabilityDateRange[2]
     
@@ -228,11 +248,14 @@ server <- function(input, output) {
       latLng = TRUE
     }
     
-    pickup <- constData(fol, pickup = TRUE, latLng = latLng)
-      mvPickup <- pickup %>%
-        filter(DATE >= date1 & DATE <= date2) %>%
-        filter(DAY %in% daysToInclude) %>%
-        genMap(latLng = latLng, zcol=input$zColPickup)
+    pickup <- read.csv(input$demandTRACT$datapath)
+    if(latLng == TRUE){
+      pickup <- read.csv(input$demandLatLng$datapath)
+    }
+    mvPickup <- pickup %>%
+      filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
+      filter(DAY %in% daysToInclude) %>%
+      genMap(latLng = latLng, zcol=input$zColDemand, pickup = TRUE)
       mvPickup@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
     })
 }
