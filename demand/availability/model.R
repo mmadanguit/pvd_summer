@@ -16,35 +16,66 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
   else {
     avg <- trips %>% group_by(TRACT)
   }
+  # print(nrow(summarize(avg %>% group_by(DATE))))
+  numDays <- nrow(summarize(avg %>% group_by(DATE)))
   if (type == "demand") { # Create summary statistics for demand data
-    # print(nrow(summarize(avg %>% group_by(DATE))))
-    numDays <- nrow(summarize(avg %>% group_by(DATE)))
     avg <- avg %>%
       summarize(meanTrips = mean(ADJTRIPS, na.rm = TRUE),
                 medTrips = median(ADJTRIPS, na.rm = TRUE),
                 stdTrips = sd(ADJTRIPS, na.rm = TRUE),
-                zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE)/numDays #This does zeroTrips as a % of every day that any tract has data
-                # zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE)/length(ADJTRIPS) #This does zeroTrips as a % of every day that this tract has data
-      )
+                zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE)/numDays, #This does zeroTrips as a % of every day that any tract has data
+                # zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE)/length(ADJTRIPS), #This does zeroTrips as a % of every day that this tract has data
+                
+                meanAvailPct = mean(AVAILPCT, na.rm = TRUE),
+                medAvailPct = median(AVAILPCT, na.rm = TRUE),
+                stdAvailPct = sd(AVAILPCT, na.rm = TRUE),
+                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE), # Days w/ zero avail
+                meanAvail = mean(COUNTTIME, na.rm = TRUE), 
+                medAvail = median(COUNTTIME, na.rm = TRUE), 
+                stdAvail = sd(COUNTTIME, na.rm = TRUE),
+                zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE))
   } 
   else if (type == "pickup") { # Create summary statistics for pickup data
     avg <- avg %>%
       summarize(meanTrips = mean(TRIPS, na.rm = TRUE),
                 medTrips = median(TRIPS, na.rm = TRUE),
                 stdTrips = sd(TRIPS, na.rm = TRUE),
-                zeroTrips = sum(TRIPS == 0, na.rm = TRUE))
+                zeroTrips = sum(TRIPS == 0, na.rm = TRUE)/numDays, #This does zeroTrips as a % of every day that any tract has data
+                # zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE)/length(ADJTRIPS), #This does zeroTrips as a % of every day that this tract has data
+                
+                meanAvailPct = mean(AVAILPCT, na.rm = TRUE),
+                medAvailPct = median(AVAILPCT, na.rm = TRUE),
+                stdAvailPct = sd(AVAILPCT, na.rm = TRUE),
+                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE), # Days w/ zero avail
+                meanAvail = mean(COUNTTIME, na.rm = TRUE), 
+                medAvail = median(COUNTTIME, na.rm = TRUE), 
+                stdAvail = sd(COUNTTIME, na.rm = TRUE),
+                zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE))
   }
   else if (type == "difference") { # Create summary statistics for difference in pickups and demand
     avg <- avg %>%
       summarize(meanAdjTrips = mean(ADJTRIPS, na.rm = TRUE),
                 medAdjTrips = median(ADJTRIPS, na.rm = TRUE),
                 stdAdjTrips = sd(ADJTRIPS, na.rm = TRUE),
-                zeroAdjTrips = sum(ADJTRIPS == 0, na.rm = TRUE),
+                zeroAdjTrips = sum(ADJTRIPS == 0, na.rm = TRUE)/numDays, #This does zeroTrips as a % of every day that any tract has data
+                # zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE)/length(ADJTRIPS), #This does zeroTrips as a % of every day that this tract has data
                 
                 meanTrips = mean(TRIPS, na.rm = TRUE),
                 medTrips = median(TRIPS, na.rm = TRUE),
                 stdTrips = sd(TRIPS, na.rm = TRUE),
-                zeroTrips = sum(TRIPS == 0, na.rm = TRUE)) %>%
+                zeroTrips = sum(TRIPS == 0, na.rm = TRUE)/numDays, #This does zeroTrips as a % of every day that any tract has data
+                # zeroTrips = sum(TRIPS == 0, na.rm = TRUE)/length(ADJTRIPS), #This does zeroTrips as a % of every day that this tract has data
+                
+                
+                meanAvailPct = mean(AVAILPCT, na.rm = TRUE),
+                medAvailPct = median(AVAILPCT, na.rm = TRUE),
+                stdAvailPct = sd(AVAILPCT, na.rm = TRUE),
+                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE), # Days w/ zero avail
+                meanAvail = mean(COUNTTIME, na.rm = TRUE), 
+                medAvail = median(COUNTTIME, na.rm = TRUE), 
+                stdAvail = sd(COUNTTIME, na.rm = TRUE),
+                zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE)
+                ) %>%
       mutate(meanTrips = meanAdjTrips-meanTrips,
              medTrips = medAdjTrips-medTrips,
              stdTrips = stdAdjTrips-stdTrips,
@@ -100,7 +131,7 @@ geoLatLng <- function(trips) {
   return(st_as_sf(trips))
 }
 
-genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 11) {
+genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 12) {
   "Generate mapview for demand/pickup data"
   trips <- trips %>% avg(latLng, type)
   pal <- mapviewPalette("mapviewSpectralColors")
@@ -114,7 +145,7 @@ genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", c
   nonzeroData <- filter(data, data[zcol] > 0) # Finding the nonzero min makes data with 0s play better. 0 values are always default gray.
   min <- min(nonzeroData) - 0.0000000001 # The subtraction makes sure the nonzero min is included
   max <- max(nonzeroData) + 0.0000000001 # The addition makes sure the max is included
-  mv <- mapview(tripData, zcol = zcol, col.regions = pal, at = logseq(min, max, colors), scientific = TRUE) #at controls the color gradient and makes it log
+  mv <- mapview(tripData, zcol = zcol, col.regions = pal, at = logseq(min, max, colors)) #at controls the color gradient and makes it log
   # The legend colors are wrong. I think the color for a tract with value x is the legend color (ln(x)/ln(max))*max, or something along those lines but incorporating the min of the colorscale.
   return(mv)
 }

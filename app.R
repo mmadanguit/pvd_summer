@@ -82,7 +82,7 @@ ui <- fluidPage(
                                     "text/comma-separated-values")),
                dateRangeInput("availabilityDateRange", "Date Range to model",
                               start = "2019-5-01",
-                              end = "2019-10-31",
+                              end = "2019-9-30",
                               min = "2018-11-01",
                               max = "2019-10-31"),
                checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
@@ -92,7 +92,9 @@ ui <- fluidPage(
                  "Mean Trips" = "meanTrips", 
                  "Median Trips" = "medTrips",
                  "Standard Deviation Trips" = "stdTrips",
-                 "Zero Trips" = "zeroTrips"
+                 "Zero Trips" = "zeroTrips",
+                 "zeroAvailPct" = "zeroAvailPct",
+                 "stdAvailPct" = "stdAvailPct"
                  )),
                bsTooltip("zCol", "tooltip text"),
                p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul")
@@ -116,7 +118,8 @@ ui <- fluidPage(
 # Define server logic to load, map, and label selected datasets
 server <- function(input, output) {
   options(shiny.maxRequestSize = 30*1024^2)
-  # shinyjs::hide(id = "tractOrLatLng")
+  
+  
   currentIds <- c()
   observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
     for (constraintId in currentIds){ #Start by getting rid of all the maps
