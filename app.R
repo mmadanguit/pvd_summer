@@ -123,6 +123,9 @@ ui <- fluidPage(
                hr(),
                h3("Pickup Map"),
                leafletOutput("pickupMapPlot"), #This is where the map will go
+              hr(),
+              h3("Difference Map"),
+              leafletOutput("differenceMapPlot"), #This is where the map will go
              )
       )
     )
@@ -223,7 +226,7 @@ server <- function(input, output) {
     mvDemand <- demand %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
-      genMap(latLng = latLng, zcol=input$zColDemand, pickup == FALSE)
+      genMap(latLng = latLng, zcol=input$zColDemand, type = "demand")
     mvDemand@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
   })
   
@@ -255,9 +258,39 @@ server <- function(input, output) {
     mvPickup <- pickup %>%
       filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
       filter(DAY %in% daysToInclude) %>%
-      genMap(latLng = latLng, zcol=input$zColDemand, pickup = TRUE)
+      genMap(latLng = latLng, zcol=input$zColDemand, type = "pickup")
       mvPickup@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
     })
+  output$differenceMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
+    req(input$demandTRACT)
+    req(input$demandLatLng)
+    
+    date1 = input$availabilityDateRange[1] #All pretty much the same as above.
+    date2 = input$availabilityDateRange[2]
+    
+    
+    daysToInclude <- c()
+    if(input$includeWeekdays[1]){
+      daysToInclude <- c(daysToInclude, c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"))
+    }
+    if(input$includeWeekends[1]){
+      daysToInclude <- c(daysToInclude, c("Saturday", "Sunday"))
+    }
+    latLng = FALSE
+    if(input$tractOrLatLng == "latLng"){
+      latLng = TRUE
+    }
+    
+    difference <- read.csv(input$demandTRACT$datapath)
+    if(latLng == TRUE){
+      difference <- read.csv(input$demandLatLng$datapath)
+    }
+    mvDifference <- difference %>%
+      filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
+      filter(DAY %in% daysToInclude) %>%
+      genMap(latLng = latLng, zcol=input$zColDemand, type = "difference")
+    mvDifference@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
+  })
 }
 
 shinyApp(ui=ui, server=server)

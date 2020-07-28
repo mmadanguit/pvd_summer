@@ -3,9 +3,9 @@ library(sf)
 library(mapview)
 library(pracma)
 
-fol <- "/home/marion/PVDResearch/Data/demandData/"
-demandLatLng  <- read.csv(paste0(fol, "demandLatLng.csv")) 
-demandTRACT  <- read.csv(paste0(fol, "demandTRACT.csv")) 
+# fol <- "/home/marion/PVDResearch/Data/demandData/"
+# demandLatLng  <- read.csv(paste0(fol, "demandLatLng.csv")) 
+# demandTRACT  <- read.csv(paste0(fol, "demandTRACT.csv")) 
 
 avg <- function(trips, latLng = FALSE, type = "demand") {
   "Find daily average for trip data over period of time.
@@ -115,4 +115,4 @@ genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", c
   return(mv)
 }
 
-genMap(demandTRACT, latLng = FALSE, type = "difference", zcol = "meanTrips")
+# genMap(demandTRACT, latLng = FALSE, type = "difference", zcol = "meanTrips")
