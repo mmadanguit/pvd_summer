@@ -160,8 +160,8 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
     tripData <- geoData(trips)
   }
   # Log transform to get color scale
-  tripData$logzcol <- log(as.data.frame(tripData)[,zcol]+0.001)
-  print(tripData$logzcol)
+  zcolData <- as.data.frame(tripData)[,zcol]
+  tripData$logzcol <- log(zcolData+0.001)
   pal <- colorNumeric(palette = "Spectral", domain = tripData$logzcol, reverse=TRUE)
   
   mv <- leaflet() %>% 
@@ -169,8 +169,8 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
     addPolygons(data = tripData, 
                 stroke = FALSE,
                 fillOpacity = 0.7,
-                fillColor = ~pal(tripData$logzcol),
-                popup = paste("Value: ", tripData$logzcol, "<br>")) %>%
+                fillColor = ~pal(logzcol),
+                popup = paste("Value: ", zcolData, "<br>")) %>%
     addLegend(position = "bottomright", pal = pal, values = tripData$logzcol,
               title = "Providence",  
               labFormat = labelFormat(suffix="", transform = function(x) exp(x)-0.001,digits=2),
@@ -180,4 +180,4 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
 }
 
 #demandTRACT  <- read.csv("demandTRACT.csv")
-#genMapCol(demandTRACT, latLng = FALSE, type = "difference", zcol = "meanTrips")
+#genMapCol(demandTRACT, latLng = FALSE, type = "demand", zcol = "meanTrips")
