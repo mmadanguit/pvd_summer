@@ -150,4 +150,34 @@ genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", c
   return(mv)
 }
 
-# genMap(demandTRACT, latLng = FALSE, type = "difference", zcol = "meanTrips")
+genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 10) {
+  "Generate mapview for demand/pickup data with updated colors"
+  trips <- trips %>% avg(latLng, type)
+  if (latLng) {
+    tripData <- geoLatLng(trips)
+  }
+  else {
+    tripData <- geoData(trips)
+  }
+  # Log transform to get color scale
+  tripData$logzcol <- log(as.data.frame(tripData)[,zcol]+0.001)
+  print(tripData$logzcol)
+  pal <- colorNumeric(palette = "Spectral", domain = tripData$logzcol, reverse=TRUE)
+  
+  mv <- leaflet() %>% 
+    addProviderTiles("CartoDB.Positron") %>%
+    addPolygons(data = tripData, 
+                stroke = FALSE,
+                fillOpacity = 0.7,
+                fillColor = ~pal(tripData$logzcol),
+                popup = paste("Value: ", tripData$logzcol, "<br>")) %>%
+    addLegend(position = "bottomright", pal = pal, values = tripData$logzcol,
+              title = "Providence",  
+              labFormat = labelFormat(suffix="", transform = function(x) exp(x)-0.001,digits=2),
+              opacity = 1)
+  
+  return(mv)
+}
+
+#demandTRACT  <- read.csv("demandTRACT.csv")
+#genMapCol(demandTRACT, latLng = FALSE, type = "difference", zcol = "meanTrips")
