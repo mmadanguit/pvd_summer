@@ -131,7 +131,7 @@ geoLatLng <- function(trips) {
   return(st_as_sf(trips))
 }
 
-genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 12) {
+genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 11) {
   "Generate mapview for demand/pickup data"
   trips <- trips %>% avg(latLng, type)
   pal <- mapviewPalette("mapviewSpectralColors")
