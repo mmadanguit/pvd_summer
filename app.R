@@ -9,7 +9,6 @@ library(shinyjs)
 library(pracma)
 library(rsconnect)
 source('census_data_example.R')
-# source('demand/dropoffDemandModel.R')
 source('demand/availability/model.R')
 
 
@@ -70,12 +69,7 @@ ui <- fluidPage(
     #     )
     #   )
     # ),
-    # tabPanel("Dropoff Demand Map",
-    #   titlePanel("Dropoff Demand Map"),
-    #     mainPanel(
-    #       leafletOutput("dropoffDemandMapPlot"), #This is where the demand map will go
-    #     )
-    #   ),
+
     tabPanel("Availability",
              sidebarPanel(
                fileInput("demandTRACT", "Choose demandTRACT.csv",
@@ -172,13 +166,6 @@ server <- function(input, output) {
   #   }
   # })
   
-
-  
-  # fol <- "" #Folder containing pickupsSummary.csv, availIntervals.csv, and tripsPerTract.csv
-  # output$dropoffDemandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
-  #   mv <- dropoffDemandMap(fol)
-  #   mv@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
-  # })
   
   setupPlots <- reactive({ #Reactive function to read the CSVs and filter based on the inputs. Runs once every time the inputs are changed, instead of 3 times (1 for each map)
     req(input$demandTRACT) #Require the 2 modeled demand data files to be uploaded
