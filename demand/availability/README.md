@@ -8,6 +8,7 @@ demand: main folder
 * model.R: Main file for plotting demand
 * buildDemand: Builds demand data based on interval count and pickup data, using the CDF to adjust estimates based on when the data was caputered
 * createCDF: Creates a CDF based on when scooter usage is highest, such that demand can be adjusted. EG if demand data only exists for peak, the demand estimate will be brought down as the scooters picked up then were picked up during the busiest part of the day.
+
 dataPrep: folder with files for generating data for use in the model
 * countIntervals.R: Calculates the intervals where scooters are available based on the locations dataset
 * mapTo.R: Map coordinate to tract or rounded latLng
