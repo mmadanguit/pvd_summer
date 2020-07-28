@@ -17,20 +17,15 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
     avg <- trips %>% group_by(TRACT)
   }
   if (type == "demand") { # Create summary statistics for demand data
+    # print(nrow(summarize(avg %>% group_by(DATE))))
+    numDays <- nrow(summarize(avg %>% group_by(DATE)))
     avg <- avg %>%
       summarize(meanTrips = mean(ADJTRIPS, na.rm = TRUE),
                 medTrips = median(ADJTRIPS, na.rm = TRUE),
                 stdTrips = sd(ADJTRIPS, na.rm = TRUE),
-                zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE),
-                
-                meanAvailPct = mean(AVAILPCT, na.rm = TRUE),
-                medAvailPct = median(AVAILPCT, na.rm = TRUE),
-                stdAvailPct = sd(AVAILPCT, na.rm = TRUE),
-                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE), # Days w/ zero avail
-                meanAvail = mean(COUNTTIME, na.rm = TRUE), 
-                medAvail = median(COUNTTIME, na.rm = TRUE), 
-                stdAvail = sd(COUNTTIME, na.rm = TRUE),
-                zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE))
+                zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE)/numDays #This does zeroTrips as a % of every day that any tract has data
+                # zeroTrips = sum(ADJTRIPS == 0, na.rm = TRUE)/length(ADJTRIPS) #This does zeroTrips as a % of every day that this tract has data
+      )
   } 
   else if (type == "pickup") { # Create summary statistics for pickup data
     avg <- avg %>%
@@ -105,7 +100,7 @@ geoLatLng <- function(trips) {
   return(st_as_sf(trips))
 }
 
-genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 10) {
+genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 11) {
   "Generate mapview for demand/pickup data"
   trips <- trips %>% avg(latLng, type)
   pal <- mapviewPalette("mapviewSpectralColors")

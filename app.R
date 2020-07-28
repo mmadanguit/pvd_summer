@@ -8,6 +8,7 @@ library(mapview)
 library(shinyjs)
 library(pracma)
 library(rsconnect)
+library(shinyBS)
 source('census_data_example.R')
 source('demand/availability/model.R')
 
@@ -80,7 +81,7 @@ ui <- fluidPage(
                          accept = c("text/csv",
                                     "text/comma-separated-values")),
                dateRangeInput("availabilityDateRange", "Date Range to model",
-                              start = "2018-11-01",
+                              start = "2019-5-01",
                               end = "2019-10-31",
                               min = "2018-11-01",
                               max = "2019-10-31"),
@@ -93,10 +94,12 @@ ui <- fluidPage(
                  "Standard Deviation Trips" = "stdTrips",
                  "Zero Trips" = "zeroTrips"
                  )),
+               bsTooltip("zCol", "tooltip text"),
+               p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul")
              ),
-             titlePanel("Availability Maps"),
+             # titlePanel("Availability Maps"),
              mainPanel(
-               h3("Demand Map"),
+               h3("Estimated Demand Map"),
                leafletOutput("demandMapPlot"), #This is where the map will go 
                hr(),
                h3("Pickup Map"),
@@ -193,8 +196,8 @@ server <- function(input, output) {
       demand <- read.csv(input$demandLatLng$datapath)
     }
     filteredDemand <- demand %>%
-      filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
-      filter(DAY %in% daysToInclude)
+      filter(DATE >= date1 & DATE <= date2) #%>% #Do the filtering from above
+      # filter(DAY %in% daysToInclude)
     
   })
   
