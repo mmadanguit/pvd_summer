@@ -14,7 +14,6 @@ source('demand/availability/model.R')
 
 ui <- fluidPage(
   useShinyjs(),
-  options(shiny.maxRequestSize = 30*1024^2),
   tabsetPanel(
     # tabPanel("Census Data Map",
     #   # App title ----
@@ -113,6 +112,7 @@ ui <- fluidPage(
 
 # Define server logic to load, map, and label selected datasets
 server <- function(input, output) {
+  options(shiny.maxRequestSize = 30*1024^2)
   # shinyjs::hide(id = "tractOrLatLng")
   # currentIds <- c()
   # observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
