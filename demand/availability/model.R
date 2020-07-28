@@ -41,10 +41,19 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
   }
   else if (type == "difference") { # Create summary statistics for difference in pickups and demand
     avg <- avg %>%
-      summarize(meanTrips = mean(ADJTRIPS-TRIPS, na.rm = TRUE),
-                medTrips = median(ADJTRIPS-TRIPS, na.rm = TRUE),
-                stdTrips = sd(ADJTRIPS-TRIPS, na.rm = TRUE),
-                zeroTrips = sum(ADJTRIPS-TRIPS == 0, na.rm = TRUE))
+      summarize(meanAdjTrips = mean(ADJTRIPS, na.rm = TRUE),
+                medAdjTrips = median(ADJTRIPS, na.rm = TRUE),
+                stdAdjTrips = sd(ADJTRIPS, na.rm = TRUE),
+                zeroAdjTrips = sum(ADJTRIPS == 0, na.rm = TRUE),
+                
+                meanTrips = mean(TRIPS, na.rm = TRUE),
+                medTrips = median(TRIPS, na.rm = TRUE),
+                stdTrips = sd(TRIPS, na.rm = TRUE),
+                zeroTrips = sum(TRIPS == 0, na.rm = TRUE)) %>%
+      mutate(meanTrips = meanAdjTrips-meanTrips,
+             medTrips = medAdjTrips-medTrips,
+             stdTrips = stdAdjTrips-stdTrips,
+             zeroTrips = zeroAdjTrips-zeroTrips)
   }
   avg <- avg %>% mutate_if(is.numeric, round, 3) %>% drop_na()
   avg[avg == Inf] <- NA
@@ -76,7 +85,7 @@ latLngRect <- function(westLng, eastLng, southLat, northLat) {
 
 geoLatLng <- function(trips) {
   "Build shape data for lat lng trip data"
-  rd <- 0.005 # Rounding value
+  rd <- 0.01 # Rounding value
   westLng <- trips$LNG-rd/2
   eastLng <- trips$LNG+rd/2
   southLat <- trips$LAT-rd/2
