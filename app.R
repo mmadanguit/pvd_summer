@@ -99,33 +99,18 @@ ui <- fluidPage(
                  "Median Trips" = "medTrips",
                  "Standard Deviation Trips" = "stdTrips",
                  "Zero Trips" = "zeroTrips"
-                 # "meanAvailTime" = "meanAvailTime",
-                 # "medAvailTime" = "medAvailTime",
-                 # "stdAvailTime" = "stdAvailTime",
-                 # "zeroAvailTime" = "zeroAvailTime",
-                 # "naAvailTime" = "naAvailTime",
-                 # "meanAvail" = "meanAvail",
-                 # "medAvail" = "medAvail",
-                 # "stdAvail" = "stdAvail",
-                 # "zeroAvail" = "zeroAvail"
                  )),
-               # radioButtons("zColPickup", "zColPickup", choices = c(
-               #   "Mean Trips" = "meanTrips", 
-               #   "Median Trips" = "medTrips",
-               #   "Standard Deviation Trips" = "stdTrips",
-               #   "Zero Trips" = "zeroTrips"
-               # )),
              ),
              titlePanel("Availability Maps"),
              mainPanel(
                h3("Demand Map"),
-              leafletOutput("demandMapPlot"), #This is where the map will go 
+               leafletOutput("demandMapPlot"), #This is where the map will go 
                hr(),
                h3("Pickup Map"),
                leafletOutput("pickupMapPlot"), #This is where the map will go
-              hr(),
-              h3("Difference Map"),
-              leafletOutput("differenceMapPlot"), #This is where the map will go
+               hr(),
+               h3("Difference Map"),
+               leafletOutput("differenceMapPlot"), #This is where the map will go
              )
       )
     )
@@ -135,7 +120,6 @@ ui <- fluidPage(
 # Define server logic to load, map, and label selected datasets
 server <- function(input, output) {
   # shinyjs::hide(id = "tractOrLatLng")
-  # output$placeholder <- renderText("Placeholder")
   # currentIds <- c()
   # observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
   #   for (constraintId in currentIds){ #Start by getting rid of all the maps
@@ -196,32 +180,28 @@ server <- function(input, output) {
   #   mv@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
   # })
   
-  setupPlots <- reactive({
-    print("Running setupPlots")
-    req(input$demandTRACT)
+  setupPlots <- reactive({ #Reactive function to read the CSVs and filter based on the inputs. Runs once every time the inputs are changed, instead of 3 times (1 for each map)
+    req(input$demandTRACT) #Require the 2 modeled demand data files to be uploaded
     req(input$demandLatLng)
     
-    date1 = input$availabilityDateRange[1] #Get the start and end dates to calculate model.R with
+    date1 = input$availabilityDateRange[1] #Get the start and end dates to filter the demand data output with
     date2 = input$availabilityDateRange[2]
     
     
-    daysToInclude <- c() #Figure out what days to include to filter model.R output with
+    daysToInclude <- c() #Figure out what days to include to filter the demand data output with
     if(input$includeWeekdays[1]){
       daysToInclude <- c(daysToInclude, c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"))
     }
     if(input$includeWeekends[1]){
       daysToInclude <- c(daysToInclude, c("Saturday", "Sunday"))
     }
-    # print(input$tractOrLatLng)
-    # print(input$demandTRACT$datapath)
     
-    latLng = FALSE
+    latLng = FALSE #Convert latlng radio buttons to a boolean
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
     
-    # demand <- constData(input$intervalCountsTRACT$datapath, latLng = latLng) #The actual modeling stuff from model.R
-    demand <- read.csv(input$demandTRACT$datapath)
+    demand <- read.csv(input$demandTRACT$datapath) #Read the demand files, defaulting to tract edition
     if(latLng == TRUE){
       demand <- read.csv(input$demandLatLng$datapath)
     }
@@ -232,30 +212,30 @@ server <- function(input, output) {
   })
   
   output$demandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
-    latLng = FALSE
+    latLng = FALSE #Convert latlng radio buttons to a boolean
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    mvDemand <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "demand")
-    mvDemand@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
+    mvDemand <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "demand") #Get the output from setupPlots and generate the map based on that
+    mvDemand@map #Get the contents of the leaflet map of the mapview output
   })
   
   
   output$pickupMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
-    latLng = FALSE
+    latLng = FALSE #Convert latlng radio buttons to a boolean
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    mvPickup <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "pickup")
-    mvPickup@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
+    mvPickup <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "pickup") #Get the output from setupPlots and generate the map based on that
+    mvPickup@map #Get the contents of the leaflet map of the mapview output
     })
   output$differenceMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
-    latLng = FALSE
+    latLng = FALSE #Convert latlng radio buttons to a boolean
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    mvDifference <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "difference")
-    mvDifference@map #Get the contents of the "map" slot of the formal mapview object. Ngl don't totally know what this means.
+    mvDifference <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "difference") #Get the output from setupPlots and generate the map based on that
+    mvDifference@map #Get the contents of the leaflet map of the mapview output
   })
 }
 
