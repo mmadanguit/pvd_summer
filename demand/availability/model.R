@@ -3,9 +3,9 @@ library(sf)
 library(mapview)
 library(pracma)
 
-fol <- "/home/marion/PVDResearch/Data/demandData/"
-demandLatLng  <- read.csv(paste0(fol, "demandLatLng.csv")) 
-demandTRACT  <- read.csv(paste0(fol, "demandTRACT.csv")) 
+# fol <- "/home/marion/PVDResearch/Data/demandData/"
+# demandLatLng  <- read.csv(paste0(fol, "demandLatLng.csv")) 
+# demandTRACT  <- read.csv(paste0(fol, "demandTRACT.csv")) 
 
 avg <- function(trips, latLng = FALSE, type = "demand") {
   "Find daily average for trip data over period of time.
@@ -96,7 +96,7 @@ geoLatLng <- function(trips) {
   return(st_as_sf(trips))
 }
 
-genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 20) {
+genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 10) {
   "Generate mapview for demand/pickup data"
   trips <- trips %>% avg(latLng, type)
   pal <- mapviewPalette("mapviewSpectralColors")
@@ -110,9 +110,9 @@ genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", c
   nonzeroData <- filter(data, data[zcol] > 0) # Finding the nonzero min makes data with 0s play better. 0 values are always default gray.
   min <- min(nonzeroData) - 0.0000000001 # The subtraction makes sure the nonzero min is included
   max <- max(nonzeroData) + 0.0000000001 # The addition makes sure the max is included
-  mv <- mapview(tripData, zcol = zcol, col.regions = pal(colors), at = logseq(min, max), scientific = TRUE) #at controls the color gradient and makes it log
+  mv <- mapview(tripData, zcol = zcol, col.regions = pal, at = logseq(min, max, colors), scientific = TRUE) #at controls the color gradient and makes it log
   # The legend colors are wrong. I think the color for a tract with value x is the legend color (ln(x)/ln(max))*max, or something along those lines but incorporating the min of the colorscale.
   return(mv)
 }
 
-genMap(demandTRACT, latLng = FALSE, type = "difference", zcol = "meanTrips")
+# genMap(demandTRACT, latLng = FALSE, type = "difference", zcol = "meanTrips")
