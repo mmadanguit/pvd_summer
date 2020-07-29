@@ -293,8 +293,8 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
   return(mv)
 }
 
-demandLatLng  <- read.csv("demand/availability/dataPrep/demandLatLng.csv")
-demandTract <- read.csv("demandTRACT.csv")
-genMapCol(demandLatLng, latLng = TRUE, type = "demand", zcol = "meanTrips")
+#demandLatLng  <- read.csv("demand/availability/dataPrep/demandLatLng.csv")
+#demandTract <- read.csv("demandTRACT.csv")
+#genMapCol(demandLatLng, latLng = TRUE, type = "demand", zcol = "meanTrips")
 
 
