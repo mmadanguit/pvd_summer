@@ -29,11 +29,12 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
                 meanAvailPct = mean(AVAILPCT, na.rm = TRUE),
                 medAvailPct = median(AVAILPCT, na.rm = TRUE),
                 stdAvailPct = sd(AVAILPCT, na.rm = TRUE),
-                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE), # Days w/ zero avail
+                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE)/numDays, # Days w/ zero avail
                 meanAvail = mean(COUNTTIME, na.rm = TRUE), 
                 medAvail = median(COUNTTIME, na.rm = TRUE), 
-                stdAvail = sd(COUNTTIME, na.rm = TRUE),
-                zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE))
+                stdAvail = sd(COUNTTIME, na.rm = TRUE)
+                # zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE)
+                )
   } 
   else if (type == "pickup") { # Create summary statistics for pickup data
     avg <- avg %>%
@@ -46,11 +47,12 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
                 meanAvailPct = mean(AVAILPCT, na.rm = TRUE),
                 medAvailPct = median(AVAILPCT, na.rm = TRUE),
                 stdAvailPct = sd(AVAILPCT, na.rm = TRUE),
-                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE), # Days w/ zero avail
+                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE)/numDays, # Days w/ zero avail
                 meanAvail = mean(COUNTTIME, na.rm = TRUE), 
                 medAvail = median(COUNTTIME, na.rm = TRUE), 
-                stdAvail = sd(COUNTTIME, na.rm = TRUE),
-                zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE))
+                stdAvail = sd(COUNTTIME, na.rm = TRUE)
+                # zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE)
+                )
   }
   else if (type == "difference") { # Create summary statistics for difference in pickups and demand
     avg <- avg %>%
@@ -70,11 +72,11 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
                 meanAvailPct = mean(AVAILPCT, na.rm = TRUE),
                 medAvailPct = median(AVAILPCT, na.rm = TRUE),
                 stdAvailPct = sd(AVAILPCT, na.rm = TRUE),
-                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE), # Days w/ zero avail
+                zeroAvailPct = sum(AVAILPCT == 0, na.rm = TRUE)/numDays, # Days w/ zero avail
                 meanAvail = mean(COUNTTIME, na.rm = TRUE), 
                 medAvail = median(COUNTTIME, na.rm = TRUE), 
-                stdAvail = sd(COUNTTIME, na.rm = TRUE),
-                zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE)
+                stdAvail = sd(COUNTTIME, na.rm = TRUE)
+                # zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE)
                 ) %>%
       mutate(meanTrips = meanAdjTrips-meanTrips,
              medTrips = medAdjTrips-medTrips,

@@ -13,6 +13,51 @@ source('census_data_example.R')
 source('demand/availability/model.R')
 
 
+scooterVarChoices <- c(
+  "Mean Trips/Day" = "meanTrips", 
+  "Median Trips/Day" = "medTrips",
+  "Standard Deviation Trips/Day" = "stdTrips",
+  #################################################
+  "Mean Scooters Available/Day" = "meanAvail",
+  "Median Scooters Available/Day" = "medAvail",
+  "Standard Deviation Mean Available/Day" = "stdAvail",
+  "Mean % of Day with Scooters Available" = "meanAvailPct",
+  "Median % of Day with Scooters Available" = "medAvailPct",
+  "Standard Deviation of Mean Available %" = "stdAvailPct",
+  "% of Days with Zero Trips" = "zeroTrips",
+  "% of Days with Zero Available Scooters" = "zeroAvailPct"
+)
+censusVarChoices <- c(
+  "Population" = 'Pop',
+  "% Male" = 'Male',
+  "% Female" = 'Female',
+  "% White" = 'White',
+  "% Black" = 'Black',
+  "% Other Race" = 'Other',
+  "% Hispanic" = 'Hispanic',
+  "% Citizen" = 'Citizen',
+  "% Non-Citizen" = 'NotCitizen',
+  "% Engligh-Speaking Only" = 'engOnly',
+  "% Spanish-Speaking Only" = 'spanish',
+  "% Spanish with Strong English" = 'spanishStrE',
+  "% Spanish with Weak English" ='spanishWeakE',
+  "Median Family Income" = 'medFamInc',
+  "Per Capita Income" = 'perCapitaInc',
+  "% Poverty" = 'Poverty',
+  "% Above Poverty" = 'abovePoverty',
+  "% Internet Access" = 'InternetAccess',
+  "% No Internet Access" = 'noInternetAccess',
+  "% Disability" = 'Disability',
+  "% No Disability" = 'NoDisability',
+  "% Commute by Auto" = 'auto',
+  "% Commute by Public Transport" = 'public',
+  "% Commute by Walk" = 'walk',
+  "% Commute by Other" = 'other',
+  "% In College" = 'college'
+)
+zColTooltipText <- "The Available/Day variables are the ones summarizing our model, and therefore show the Estimated Demand and Difference maps. All other variables summarize existing data and therefore only show the first map."
+tripsVariables <- c("meanTrips", "medTrips", "stdTrips")
+
 ui <- fluidPage(
    useShinyjs(),
 
@@ -33,52 +78,9 @@ ui <- fluidPage(
      checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
      checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
      radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
-     radioButtons("zCol", "Scooter Variable", choices = c(
-       "Mean Trips/Day" = "meanTrips", 
-       "Median Trips/Day" = "medTrips",
-       "Standard Deviation Trips/Day" = "stdTrips",
-       #################################################
-       "Mean Scooters Available/Day" = "meanAvail",
-       "Median Scooters Available/Day" = "medAvail",
-       "Standard Deviation Mean Available/Day" = "stdAvail",
-       "Mean % of Day with Scooters Available" = "meanAvailPct",
-       "Median % of Day with Scooters Available" = "medAvailPct",
-       "Standard Deviation of Mean Available %" = "stdAvailPct",
-       "% of Days with Zero Trips" = "zeroTrips",
-       "Number of Days with Zero Available Scooters" = "zeroAvail"
-     )),
-     bsTooltip("zCol", "tooltip text"),
-     checkboxGroupInput("varToPlot", "Census Variables:",
-                        c(
-                          "Population" = 'Pop',
-                          "% Male" = 'Male',
-                          "% Female" = 'Female',
-                          "% White" = 'White',
-                          "% Black" = 'Black',
-                          "% Other Race" = 'Other',
-                          "% Hispanic" = 'Hispanic',
-                          "% Citizen" = 'Citizen',
-                          "% Non-Citizen" = 'NotCitizen',
-                          "% Engligh-Speaking Only" = 'engOnly',
-                          "% Spanish-Speaking Only" = 'spanish',
-                          "% Spanish with Strong English" = 'spanishStrE',
-                          "% Spanish with Weak English" ='spanishWeakE',
-                          "Median Family Income" = 'medFamInc',
-                          "Per Capita Income" = 'perCapitaInc',
-                          "% Poverty" = 'Poverty',
-                          "% Above Poverty" = 'abovePoverty',
-                          "% Internet Access" = 'InternetAccess',
-                          "% No Internet Access" = 'noInternetAccess',
-                          "% Disability" = 'Disability',
-                          "% No Disability" = 'NoDisability',
-                          "% Commute by Auto" = 'auto',
-                          "% Commute by Public Transport" = 'public',
-                          "% Commute by Walk" = 'walk',
-                          "% Commute by Other" = 'other',
-                          "% In College" = 'college'
-                        ),
-                        selected = 'Pop'
-     ), #Defines which checkboxes to use
+     radioButtons("zCol", "Scooter Variable", choices = scooterVarChoices),
+     bsTooltip("zCol", zColTooltipText),
+     checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = 'Pop'), #Defines which checkboxes to use
      p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul")
    ),
    # titlePanel("Availability Maps"),
@@ -89,14 +91,21 @@ ui <- fluidPage(
       tags$div(id = 'censusPlaceholderConstraint') #Placeholder constraint to know where to put maps
      ),
      column(6,
-      h3("Estimated Demand Map"),
-      leafletOutput("demandMapPlot"), #This is where the map will go 
-      hr(),
-      h3("Pickup Map"),
-      leafletOutput("pickupMapPlot"), #This is where the map will go
-      hr(),
-      h3("Difference Map"),
-      leafletOutput("differenceMapPlot"), #This is where the map will go
+      div(id = "pickupMapDiv",
+        h3("Scooter Variable Map"),
+        leafletOutput("pickupMapPlot"), #This is where the map will go
+        hr(),
+      ),
+      div(id = "demandMapDiv",
+        h3("Estimated Demand Map"),
+        leafletOutput("demandMapPlot"), #This is where the map will go
+        hr(),
+      ),
+      div(id = "differenceMapDiv",
+        h3("Difference Map"),
+        leafletOutput("differenceMapPlot"), #This is where the map will go
+        hr(),
+      )
      )
   )
 )
@@ -179,24 +188,20 @@ server <- function(input, output) {
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    
+    if(!input$zCol %in% tripsVariables){
+      hide("demandMapDiv")
+      hide("differenceMapDiv")
+    } else {
+      show("demandMapDiv")
+      show("differenceMapDiv")
+    }
     demand <- read.csv(input$demandTRACT$datapath) #Read the demand files, defaulting to tract edition
     if(latLng == TRUE){
       demand <- read.csv(input$demandLatLng$datapath)
     }
     filteredDemand <- demand %>%
-      filter(DATE >= date1 & DATE <= date2) #%>% #Do the filtering from above
-    # filter(DAY %in% daysToInclude)
-    
-  })
-  
-  output$demandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
-    latLng = FALSE #Convert latlng radio buttons to a boolean
-    if(input$tractOrLatLng == "latLng"){
-      latLng = TRUE
-    }
-    mvDemand <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "demand") #Get the output from setupPlots and generate the map based on that
-    mvDemand #Get the contents of the leaflet map of the mapview output
+      filter(DATE >= date1 & DATE <= date2) %>% #Do the filtering from above
+      filter(DAY %in% daysToInclude)
   })
   
   
@@ -208,6 +213,18 @@ server <- function(input, output) {
     mvPickup <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "pickup") #Get the output from setupPlots and generate the map based on that
     mvPickup #Get the contents of the leaflet map of the mapview output
   })
+  
+  
+  output$demandMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
+    latLng = FALSE #Convert latlng radio buttons to a boolean
+    if(input$tractOrLatLng == "latLng"){
+      latLng = TRUE
+    }
+    mvDemand <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "demand") #Get the output from setupPlots and generate the map based on that
+    mvDemand #Get the contents of the leaflet map of the mapview output
+  })
+  
+  
   output$differenceMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
     latLng = FALSE #Convert latlng radio buttons to a boolean
     if(input$tractOrLatLng == "latLng"){
