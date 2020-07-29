@@ -20,10 +20,10 @@ scooterVarChoices <- c(
   #################################################
   "Mean Scooters Available/Day" = "meanAvail",
   "Median Scooters Available/Day" = "medAvail",
-  "Standard Deviation of Mean Available/Day" = "stdAvail",
+  "Standard Deviation of Available/Day" = "stdAvail",
   "Mean % of Day with Scooters Available" = "meanAvailPct",
   "Median % of Day with Scooters Available" = "medAvailPct",
-  "Standard Deviation of Mean Available %" = "stdAvailPct",
+  "Standard Deviation of Available %" = "stdAvailPct",
   "% of Days with Zero Trips" = "zeroTrips",
   "% of Days with Zero Available Scooters" = "zeroAvailPct"
 )
