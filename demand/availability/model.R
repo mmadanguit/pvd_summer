@@ -2,6 +2,7 @@ library(tidyverse)
 library(sf)
 library(mapview)
 library(pracma)
+source("demand/availability/dataPrep/mapTo.R")
 
 # fol <- "/home/marion/PVDResearch/Data/demandData/"
 # demandLatLng  <- read.csv(paste0(fol, "demandLatLng.csv")) 
