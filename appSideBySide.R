@@ -20,7 +20,7 @@ scooterVarChoices <- c(
   #################################################
   "Mean Scooters Available/Day" = "meanAvail",
   "Median Scooters Available/Day" = "medAvail",
-  "Standard Deviation Mean Available/Day" = "stdAvail",
+  "Standard Deviation of Mean Available/Day" = "stdAvail",
   "Mean % of Day with Scooters Available" = "meanAvailPct",
   "Median % of Day with Scooters Available" = "medAvailPct",
   "Standard Deviation of Mean Available %" = "stdAvailPct",
@@ -210,7 +210,7 @@ server <- function(input, output) {
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    mvPickup <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "pickup") #Get the output from setupPlots and generate the map based on that
+    mvPickup <- req(setupPlots()) %>% genMapCol(latLng = latLng, zcol=input$zCol, type = "pickup") #Get the output from setupPlots and generate the map based on that
     mvPickup #Get the contents of the leaflet map of the mapview output
   })
   
@@ -220,7 +220,7 @@ server <- function(input, output) {
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    mvDemand <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "demand") #Get the output from setupPlots and generate the map based on that
+    mvDemand <- req(setupPlots()) %>% genMapCol(latLng = latLng, zcol=input$zCol, type = "demand") #Get the output from setupPlots and generate the map based on that
     mvDemand #Get the contents of the leaflet map of the mapview output
   })
   
@@ -230,7 +230,7 @@ server <- function(input, output) {
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    mvDifference <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "difference") #Get the output from setupPlots and generate the map based on that
+    mvDifference <- req(setupPlots()) %>% genMapCol(latLng = latLng, zcol=input$zCol, type = "difference") #Get the output from setupPlots and generate the map based on that
     mvDifference #Get the contents of the leaflet map of the mapview output
   })
 }

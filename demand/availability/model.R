@@ -94,7 +94,7 @@ geoData <- function(trips) {
     arrange(TRACT) %>% 
     filter(as.logical(match(TRACT, trips$TRACT)))
   trips <- trips %>%
-    add_column(GEOMETRY = geoData$geometry)#, NAME = geoData$NAME)
+    add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME)
   return(st_as_sf(trips, crs = 4326))
 }
 
@@ -165,6 +165,104 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
   zcolData <- as.data.frame(tripData)[,zcol]
   tripData$logzcol <- log(zcolData+0.001)
   pal <- colorNumeric(palette = "Spectral", domain = tripData$logzcol, reverse=TRUE)
+  # print(tripData)
+  
+  popupHTML <- sprintf( #Make a list of labels with HTML styling for each census tract
+    "<style>
+      th, td {
+        padding-right: 5px;
+      }
+    </style>
+    <strong>%s</strong><br>
+    <table>
+      <tr>
+        <td>Mean Trips/Day</td>
+        <td>%g</td>
+      </tr>
+      <tr>
+        <td>Median Trips/Day</td>
+        <td>%g</td>
+      </tr>
+      <tr>
+        <td>Standard Deviation Trips/Day</td>
+        <td>%g</td>
+      </tr>
+    </table>
+    ",
+    str_extract(tripData$NAME, "^([^,]*)"),
+    tripData$meanTrips,
+    tripData$medTrips,
+    tripData$stdTrips
+  ) %>% lapply(htmltools::HTML)
+  if(type == "pickup"){
+    popupHTML <- sprintf( #Make a list of labels with HTML styling for each census tract
+      "<style>
+        th, td {
+          padding-right: 5px;
+        }
+      </style>
+      <strong>%s</strong><br>
+      <table>
+        <tr>
+          <td>Mean Trips/Day</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Median Trips/Day</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Standard Deviation Trips/Day</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Mean Scooters Available/Day</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Median Scooters Available/Day</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Standard Deviation of Mean Available/Day</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Mean %% of Day with Scooters Available</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Median %% of Day with Scooters Available</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Standard Deviation of Mean Available %%</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>%% of Days with Zero Trips</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>%% of Days with Zero Available Scooters</td>
+          <td>%g</td>
+        </tr>
+      </table>
+    ",
+      str_extract(tripData$NAME, "^([^,]*)"),
+      tripData$meanTrips,
+      tripData$medTrips,
+      tripData$stdTrips,
+      tripData$meanAvail,
+      tripData$medAvail,
+      tripData$stdAvail,
+      tripData$meanAvailPct,
+      tripData$medAvailPct,
+      tripData$stdAvailPct,
+      tripData$zeroTrips,
+      tripData$zeroAvailPct
+    ) %>% lapply(htmltools::HTML)
+  }
   
   mv <- leaflet() %>% 
     addProviderTiles("CartoDB.Positron") %>%
@@ -173,7 +271,8 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
                 fillOpacity = 0.7,
                 fillColor = ~pal(logzcol),
                 smoothFactor = 0,
-                popup = paste("Value: ", zcolData, "<br>")) %>%
+                popup = popupHTML #paste("Value: ", zcolData, "<br>")
+                ) %>%
     addLegend(position = "bottomright", pal = pal, values = tripData$logzcol,
               title = "Providence",  
               labFormat = labelFormat(suffix="", transform = function(x) exp(x)-0.001,digits=2),
