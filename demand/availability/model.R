@@ -130,6 +130,7 @@ geoLatLng <- function(trips) {
         st_cast(st_combine(g),"POLYGON")}
     ))
   trips$geometry <- polys$geometry
+  trips$NAME <- paste0("Lat: ", trips$LAT, ", LNG:", trips$LNG)
   return(st_as_sf(trips))
 }
 
@@ -154,18 +155,29 @@ genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", c
 
 genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 10) {
   "Generate mapview for demand/pickup data with updated colors"
-  trips <- trips %>% avg(latLng, type)
   if (latLng) {
+    # Fake tract before grouping
+    latD <- str_sub(as.character(trips$LAT), 4, -1) 
+    lngD <- str_sub(as.character(trips$LNG), 5, -1)
+    trips$TRACT <- as.numeric(paste(latD, lngD, sep = "."))
+    trips <- trips %>% avg(FALSE, type) %>% undoFakeTract()
+    
+    # Add back lat/lng after grouping
+    a <- str_split_fixed(as.character(trips$TRACT), "\\.", 2)
+    trips$LAT <- as.numeric(paste("41", a[,1], sep="."))
+    trips$LNG <- as.numeric(paste("-71", a[,2], sep="."))
     tripData <- geoLatLng(trips)
   }
   else {
+    trips <- trips %>% avg(FALSE, type)
     tripData <- geoData(trips)
   }
+
   # Log transform to get color scale
   zcolData <- as.data.frame(tripData)[,zcol]
   tripData$logzcol <- log(zcolData+0.001)
   pal <- colorNumeric(palette = "Spectral", domain = tripData$logzcol, reverse=TRUE)
-  # print(tripData)
+  print(tripData)
   
   popupHTML <- sprintf( #Make a list of labels with HTML styling for each census tract
     "<style>
@@ -281,5 +293,8 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
   return(mv)
 }
 
-#demandTRACT  <- read.csv("demandTRACT.csv")
-#genMapCol(demandTRACT, latLng = FALSE, type = "demand", zcol = "meanTrips")
+demandLatLng  <- read.csv("demand/availability/dataPrep/demandLatLng.csv")
+demandTract <- read.csv("demandTRACT.csv")
+genMapCol(demandLatLng, latLng = TRUE, type = "demand", zcol = "meanTrips")
+
+
