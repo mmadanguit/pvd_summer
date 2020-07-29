@@ -139,7 +139,7 @@ server <- function(input, output) {
         selector = '#censusPlaceholderConstraint', #After the censusPlaceholderConstraint div
         ui = tags$div(id = constraintId, #Give this UI div an ID of the previously defined ID name
                       ri_pop %>% #Put this big ol map thing inside this div
-                        st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
+                        # st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
                         leaflet() %>% #Creates leaflet pane
                         addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
                         addPolygons(
