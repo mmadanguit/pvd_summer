@@ -8,6 +8,26 @@ source('downtown_loc.R')
 source('college_loc.R')
 source('mapToTract.R')
 
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor) 
+{
+  usr <- par("usr"); on.exit(par(usr)) 
+  par(usr = c(0, 1, 0, 1)) 
+  r <- abs(cor(x, y)) 
+  txt <- format(c(r, 0.123456789), digits=digits)[1] 
+  txt <- paste(prefix, txt, sep="") 
+  if(missing(cex.cor)) cex <- 0.8/strwidth(txt) 
+  
+  test <- cor.test(x,y) 
+  # borrowed from printCoefmat
+  Signif <- symnum(test$p.value, corr = FALSE, na = FALSE, 
+                   cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                   symbols = c("***", "**", "*", ".", " ")) 
+  
+  text(0.5, 0.5, txt, cex = cex * r) 
+  text(.8, .8, Signif, cex=cex, col=2) 
+}
+
+
 get_unique_loc <- function(data) {
   "
   Only get the unique combinations of LAT LNG
@@ -63,6 +83,7 @@ dist_to_college <- function(data) {
 
 
 find_census_val_riwac <- function(data, ri_data, census_name, col_name) {
+  # get unique lat lng locations -> therefore get unique GEOIDs
   loc <- get_unique_loc(data) %>%
          mapToTract() %>%
          mutate(rounded_geocode = str_sub(as.character(GEOID), 1, 11))
@@ -78,7 +99,7 @@ find_census_val_riwac <- function(data, ri_data, census_name, col_name) {
       data[data$GEOID == loc$GEOID[i], c(col_name)] <- ri_data[row, c(census_name)]
       
     } else { # if block geoid doesn't exist in ri_wac
-      # get the mean of the census_name values for each rounded_geocode
+      # get the mean of the census_name values for each ROUNDED_GEOID (basically for each tract)
       sub_ri_wac <- ri_data %>%
         group_by(ROUNDED_GEOID) %>%
         summarize(COL = mean(get(census_name)))
@@ -92,6 +113,7 @@ find_census_val_riwac <- function(data, ri_data, census_name, col_name) {
 
 
 find_census_val_ridat <- function(data, ri_data, census_name, col_name) {
+  # get unique lat lng locations -> therefore get unique GEOIDs
   loc <- get_unique_loc(data) %>%
          mapToTract() %>%
          mutate(rounded_geocode = str_sub(as.character(GEOID), 1, 11))
@@ -100,13 +122,11 @@ find_census_val_ridat <- function(data, ri_data, census_name, col_name) {
     row <- which(grepl(loc$rounded_geocode[i], ri_data$GEOID))
     if (length(row) != 0) { 
       data[data$ROUNDED_GEOID == loc$rounded_geocode[i], c(col_name)] <- ri_data[row, c(census_name)]
-    } else { # if the tract doesn't match? although this should not happen
-      # row <- which(grepl(str_sub(as.character(loc$rounded_geocode[i], -4, -1)), str_sub(as.character(ri_data$GEOID, -4, -1))))
-      # print(str_sub(as.character(loc$rounded_geocode[i]), -4, -1))
+      
+    } else { # if the GEOID from data doesn't exist in ri_data
       data[data$ROUNDED_GEOID == loc$rounded_geocode[i], c(col_name)] <- NA
     }
   }
-  
   return(data)
 }
 
@@ -158,48 +178,38 @@ ri_wac <- read_csv("~/PVD Summer Research/college/ri_wac_S000_JT00_2017.csv") %>
 
 ri_dat <- read_csv("~/PVD Summer Research/pvd_summer/censusData/riData.csv")
 
+# include median income, mean commute (1)
+# plot residuals versus each variable (2)
+# include everything but the levels
+# look at teh correlation sbetween teh variables
+
 data <- data %>%
   mutate(ROUNDED_GEOID = str_sub(as.character(GEOID), 1, 11)) %>%
-  mutate(TOTJOBS = 0, POP = 0, COMM0 = 0, COMM1 = 0, 
-         COMM2 = 0, COMM3 = 0, COMM4 = 0, COMM5 = 0,
-         COMM6 = 0, COMM7 = 0, COMM8 = 0, AUTO = 0,
-         PUBLIC  = 0, WALK = 0, COLLEGE = 0, POVERTY = 0,
-         INC0 = 0, INC1 = 0, INC2 = 0, INC3 = 0,
-         INC4 = 0, INC5 = 0, INC6 = 0, INC7 = 0) %>%
+  mutate(TOTJOBS = 0, POP = 0,  AUTO = 0, PERCAPITAINC = 0,
+         PUBLIC  = 0, WALK = 0, COLLEGE = 0, POVERTY = 0) %>%
   find_census_val_riwac(ri_wac, "C000", "TOTJOBS") %>%
   find_census_val_ridat(ri_dat, "Pop", "POP") %>%
-  find_census_val_ridat(ri_dat, "comm0", "COMM0") %>%
-  find_census_val_ridat(ri_dat, "comm1", "COMM1") %>%
-  find_census_val_ridat(ri_dat, "comm2", "COMM2") %>%
-  find_census_val_ridat(ri_dat, "comm3", "COMM3") %>%
-  find_census_val_ridat(ri_dat, "comm4", "COMM4") %>%
-  find_census_val_ridat(ri_dat, "comm5", "COMM5") %>%
-  find_census_val_ridat(ri_dat, "comm6", "COMM6") %>%
-  find_census_val_ridat(ri_dat, "comm7", "COMM7") %>%
-  find_census_val_ridat(ri_dat, "comm8", "COMM8") %>%
+  find_census_val_ridat(ri_dat, "perCapitaInc", "PERCAPITAINC") %>%
   find_census_val_ridat(ri_dat, "auto", "AUTO") %>%
   find_census_val_ridat(ri_dat, "public", "PUBLIC") %>%
   find_census_val_ridat(ri_dat, "walk", "WALK") %>%
   find_census_val_ridat(ri_dat, "college", "COLLEGE") %>%
-  find_census_val_ridat(ri_dat, "Poverty", "POVERTY") %>%
-  find_census_val_ridat(ri_dat, "inc0", "INC0") %>%
-  find_census_val_ridat(ri_dat, "inc1", "INC1") %>%
-  find_census_val_ridat(ri_dat, "inc2", "INC2") %>%
-  find_census_val_ridat(ri_dat, "inc3", "INC3") %>%
-  find_census_val_ridat(ri_dat, "inc4", "INC4") %>%
-  find_census_val_ridat(ri_dat, "inc5", "INC5") %>%
-  find_census_val_ridat(ri_dat, "inc6", "INC6") %>%
-  find_census_val_ridat(ri_dat, "inc7", "INC7") %>%
-  na.omit()
+  find_census_val_ridat(ri_dat, "Poverty", "POVERTY")
+
+# separate the rows with NA to find which geoids are causing errors
+na_data <- data[!complete.cases(data), ]
+
+data <- data %>%
+        na.omit()
+
+# ------- FIND CORRELATION BETWEEN VAIRABLES ---------
+# pairs(data[, c(3, 9, 10, 14:21)], lower.panel=panel.smooth, upper.panel=panel.cor)
 
 
 # -------------- LINEAR REGRESSION MODEL -------------
 # log0 = error, so added 1 to the count when taking the log
-model <- lm(log(COUNT+1) ~ COLLDIST + DOWNDIST + TOTJOBS + POP + COMM0 + 
-                           COMM1 + COMM2 + COMM3 + COMM4 + COMM5 +
-                           COMM6 + COMM7 + COMM8 + AUTO + PUBLIC +
-                           WALK + COLLEGE + POVERTY + INC0 + INC2 + 
-                           INC3 + INC4 + INC5 + INC6 + INC7, data = data)
+model <- lm(COUNT ~ COLLDIST + DOWNDIST + TOTJOBS + POP + PERCAPITAINC + 
+                    AUTO + PUBLIC + WALK + COLLEGE + POVERTY, data = data)
 print(summary(model))
 print(summary(model)$coefficient)
 print(summary(model)$r.squared)
