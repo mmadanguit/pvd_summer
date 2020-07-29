@@ -92,7 +92,7 @@ geoData <- function(trips) {
     arrange(TRACT) %>% 
     filter(as.logical(match(TRACT, trips$TRACT)))
   trips <- trips %>%
-    add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME)
+    add_column(GEOMETRY = geoData$geometry)#, NAME = geoData$NAME)
   return(st_as_sf(trips, crs = 4326))
 }
 
@@ -147,7 +147,7 @@ genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", c
   max <- max(nonzeroData) + 0.0000000001 # The addition makes sure the max is included
   mv <- mapview(tripData, zcol = zcol, col.regions = pal, at = logseq(min, max, colors)) #at controls the color gradient and makes it log
   # The legend colors are wrong. I think the color for a tract with value x is the legend color (ln(x)/ln(max))*max, or something along those lines but incorporating the min of the colorscale.
-  return(mv)
+  return(mv@map)
 }
 
 genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 10) {
@@ -170,6 +170,7 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
                 stroke = FALSE,
                 fillOpacity = 0.7,
                 fillColor = ~pal(logzcol),
+                smoothFactor = 0,
                 popup = paste("Value: ", zcolData, "<br>")) %>%
     addLegend(position = "bottomright", pal = pal, values = tripData$logzcol,
               title = "Providence",  

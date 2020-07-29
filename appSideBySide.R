@@ -25,7 +25,7 @@ ui <- fluidPage(
                multiple = FALSE,
                accept = c("text/csv",
                           "text/comma-separated-values")),
-     dateRangeInput("availabilityDateRange", "Date Range to model",
+     dateRangeInput("availabilityDateRange", "Date Range to Include",
                     start = "2019-5-01",
                     end = "2019-9-30",
                     min = "2018-11-01",
@@ -33,43 +33,49 @@ ui <- fluidPage(
      checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
      checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
      radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
-     radioButtons("zCol", "View Variable", choices = c(
-       "Mean Trips" = "meanTrips", 
-       "Median Trips" = "medTrips",
-       "Standard Deviation Trips" = "stdTrips",
-       "Zero Trips" = "zeroTrips",
-       "zeroAvailPct" = "zeroAvailPct",
-       "stdAvailPct" = "stdAvailPct"
+     radioButtons("zCol", "Scooter Variable", choices = c(
+       "Mean Trips/Day" = "meanTrips", 
+       "Median Trips/Day" = "medTrips",
+       "Standard Deviation Trips/Day" = "stdTrips",
+       #################################################
+       "Mean Scooters Available/Day" = "meanAvail",
+       "Median Scooters Available/Day" = "medAvail",
+       "Standard Deviation Mean Available/Day" = "stdAvail",
+       "Mean % of Day with Scooters Available" = "meanAvailPct",
+       "Median % of Day with Scooters Available" = "medAvailPct",
+       "Standard Deviation of Mean Available %" = "stdAvailPct",
+       "% of Days with Zero Trips" = "zeroTrips",
+       "Number of Days with Zero Available Scooters" = "zeroAvail"
      )),
      bsTooltip("zCol", "tooltip text"),
-     checkboxGroupInput("varToPlot", "Variable:",
+     checkboxGroupInput("varToPlot", "Census Variables:",
                         c(
-                          'Pop',
-                          'Male',
-                          'Female',
-                          'White',
-                          'Black',
-                          'Other',
-                          'Hispanic',
-                          'Citizen',
-                          'NotCitizen',
-                          'engOnly',
-                          'spanish',
-                          'spanishStrE',
-                          'spanishWeakE',
-                          'medFamInc',
-                          'perCapitaInc',
-                          'Poverty',
-                          'abovePoverty',
-                          'InternetAccess',
-                          'noInternetAccess',
-                          'Disability',
-                          'NoDisability',
-                          'auto',
-                          'public',
-                          'walk',
-                          'other',
-                          'college'
+                          "Population" = 'Pop',
+                          "% Male" = 'Male',
+                          "% Female" = 'Female',
+                          "% White" = 'White',
+                          "% Black" = 'Black',
+                          "% Other Race" = 'Other',
+                          "% Hispanic" = 'Hispanic',
+                          "% Citizen" = 'Citizen',
+                          "% Non-Citizen" = 'NotCitizen',
+                          "% Engligh-Speaking Only" = 'engOnly',
+                          "% Spanish-Speaking Only" = 'spanish',
+                          "% Spanish with Strong English" = 'spanishStrE',
+                          "% Spanish with Weak English" ='spanishWeakE',
+                          "Median Family Income" = 'medFamInc',
+                          "Per Capita Income" = 'perCapitaInc',
+                          "% Poverty" = 'Poverty',
+                          "% Above Poverty" = 'abovePoverty',
+                          "% Internet Access" = 'InternetAccess',
+                          "% No Internet Access" = 'noInternetAccess',
+                          "% Disability" = 'Disability',
+                          "% No Disability" = 'NoDisability',
+                          "% Commute by Auto" = 'auto',
+                          "% Commute by Public Transport" = 'public',
+                          "% Commute by Walk" = 'walk',
+                          "% Commute by Other" = 'other',
+                          "% In College" = 'college'
                         ),
                         selected = 'Pop'
      ), #Defines which checkboxes to use
@@ -190,7 +196,7 @@ server <- function(input, output) {
       latLng = TRUE
     }
     mvDemand <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "demand") #Get the output from setupPlots and generate the map based on that
-    mvDemand@map #Get the contents of the leaflet map of the mapview output
+    mvDemand #Get the contents of the leaflet map of the mapview output
   })
   
   
@@ -200,7 +206,7 @@ server <- function(input, output) {
       latLng = TRUE
     }
     mvPickup <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "pickup") #Get the output from setupPlots and generate the map based on that
-    mvPickup@map #Get the contents of the leaflet map of the mapview output
+    mvPickup #Get the contents of the leaflet map of the mapview output
   })
   output$differenceMapPlot <- renderLeaflet({ #Render the mapview into the leaflet thing. Mapview is based on Leaflet so this works.
     latLng = FALSE #Convert latlng radio buttons to a boolean
@@ -208,7 +214,7 @@ server <- function(input, output) {
       latLng = TRUE
     }
     mvDifference <- req(setupPlots()) %>% genMap(latLng = latLng, zcol=input$zCol, type = "difference") #Get the output from setupPlots and generate the map based on that
-    mvDifference@map #Get the contents of the leaflet map of the mapview output
+    mvDifference #Get the contents of the leaflet map of the mapview output
   })
 }
 
