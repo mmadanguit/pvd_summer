@@ -20,10 +20,10 @@ scooterVarChoices <- c(
   #################################################
   "Mean Scooters Available/Day" = "meanAvail",
   "Median Scooters Available/Day" = "medAvail",
-  "Standard Deviation of Mean Available/Day" = "stdAvail",
+  "Standard Deviation of Available/Day" = "stdAvail",
   "Mean % of Day with Scooters Available" = "meanAvailPct",
   "Median % of Day with Scooters Available" = "medAvailPct",
-  "Standard Deviation of Mean Available %" = "stdAvailPct",
+  "Standard Deviation of Available %" = "stdAvailPct",
   "% of Days with Zero Trips" = "zeroTrips",
   "% of Days with Zero Available Scooters" = "zeroAvailPct"
 )
@@ -58,6 +58,48 @@ censusVarChoices <- c(
 zColTooltipText <- "The Available/Day variables are the ones summarizing our model, and therefore show the Estimated Demand and Difference maps. All other variables summarize existing data and therefore only show the first map."
 tripsVariables <- c("meanTrips", "medTrips", "stdTrips")
 
+makeCensusPlot <- function(item, varToPlot){
+  # print("hi")
+  if(item %in% varToPlot){
+    if(item == 'Pop' | item == 'medFamInc' | item == 'perCapitaInc'){ #If the item is any of these, scale according to the domain becuz these are the variables that are not 0 to 1 range
+      pal <- colorNumeric(palette = "plasma", domain = ri_pop$item, n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
+    } else { #For all the 0 to 1 range percentage things, do one of these
+      # pal <- colorNumeric(palette = "plasma", domain = ri_pop$item, n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
+      pal <- colorNumeric(palette = "plasma", domain = 0:1, n = 10) #This line scales the colors from 0 to 1 for all variables, allowing us to see different info.
+    }
+    popupHTML <- sprintf( #Make a list of labels with HTML styling for each census tract
+      "<strong>%s</strong><br/>variable = %g",
+      str_extract(ri_pop$NAME, "^([^,]*)"), ri_pop[[item]] #Fill in the tract name, formatted to just the census tract number, and the value of this column
+    ) %>% lapply(htmltools::HTML)
+    
+    censusPlot <- ri_pop %>% #Put this big ol map thing inside this div
+      st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
+      leaflet() %>% #Creates leaflet pane
+      addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
+      addPolygons(
+        stroke = FALSE, #Creates the polygons to overlay on the map, with parameters
+        smoothFactor = 0,
+        fillOpacity = 0.7,
+        color = ~ pal(get(item)),
+        popup = popupHTML #Add the label
+        # labelOptions = labelOptions( #Add label styling
+        #   style = list("font-weight" = "normal", padding = "3px 8px"),
+        #   textsize = "15px",
+        #   direction = "auto")
+      ) %>%
+      addLegend("bottomright", #Adds the legend
+                pal = pal,
+                values = ~ get(item),
+                title = item,
+                opacity = 1
+      )
+    # print(item)
+    return(censusPlot)
+  } else {
+    return(NULL)
+  }
+}
+
 ui <- fluidPage(
    useShinyjs(),
 
@@ -80,7 +122,7 @@ ui <- fluidPage(
      radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
      radioButtons("zCol", "Scooter Variable", choices = scooterVarChoices),
      bsTooltip("zCol", zColTooltipText),
-     checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = 'Pop'), #Defines which checkboxes to use
+     checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = c()), #Defines which checkboxes to use
      p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul")
    ),
    # titlePanel("Availability Maps"),
@@ -88,7 +130,33 @@ ui <- fluidPage(
      column(6,
       h3("Census Maps"),
       # Output: Maps will go here
-      tags$div(id = 'censusPlaceholderConstraint') #Placeholder constraint to know where to put maps
+      # tags$div(id = 'censusPlaceholderConstraint') #Placeholder constraint to know where to put maps
+      div(id = "Pop", leafletOutput("PopPlot"), br()),
+      div(id = "Male", leafletOutput("MalePlot"), br()),
+      div(id = "Female", leafletOutput("FemalePlot"), br()),
+      div(id = "White", leafletOutput("WhitePlot"), br()),
+      div(id = "Black", leafletOutput("BlackPlot"), br()),
+      div(id = "Other", leafletOutput("OtherPlot"), br()),
+      div(id = "Hispanic", leafletOutput("HispanicPlot"), br()),
+      div(id = "Citizen", leafletOutput("CitizenPlot"), br()),
+      div(id = "NotCitizen", leafletOutput("NotCitizenPlot"), br()),
+      div(id = "engOnly", leafletOutput("engOnlyPlot"), br()),
+      div(id = "spanish", leafletOutput("spanishPlot"), br()),
+      div(id = "spanishStrE", leafletOutput("spanishStrEPlot"), br()),
+      div(id = "spanishWeakE", leafletOutput("spanishWeakEPlot"), br()),
+      div(id = "medFamInc", leafletOutput("medFamIncPlot"), br()),
+      div(id = "perCapitaInc", leafletOutput("perCapitaIncPlot"), br()),
+      div(id = "Poverty", leafletOutput("PovertyPlot"), br()),
+      div(id = "abovePoverty", leafletOutput("abovePovertyPlot"), br()),
+      div(id = "InternetAccess", leafletOutput("InternetAccessPlot"), br()),
+      div(id = "noInternetAccess", leafletOutput("noInternetAccessPlot"), br()),
+      div(id = "Disability", leafletOutput("DisabilityPlot"), br()),
+      div(id = "NoDisability", leafletOutput("NoDisabilityPlot"), br()),
+      div(id = "auto", leafletOutput("autoPlot"), br()),
+      div(id = "public", leafletOutput("publicPlot"), br()),
+      div(id = "walk", leafletOutput("walkPlot"), br()),
+      div(id = "other", leafletOutput("otherPlot"), br()),
+      div(id = "college", leafletOutput("collegePlot"), br()),
      ),
      column(6,
       div(id = "pickupMapDiv",
@@ -111,61 +179,53 @@ ui <- fluidPage(
 )
 
 # Define server logic to load, map, and label selected datasets
-server <- function(input, output) {
+server <- function(input, output, session) {
   options(shiny.maxRequestSize = 30*1024^2)
   
+  varsToPlot <- censusVarChoices
+  output$PopPlot <- renderLeaflet({makeCensusPlot("Pop", varsToPlot)})
+  output$MalePlot <- renderLeaflet({makeCensusPlot("Male", varsToPlot)})
+  output$FemalePlot <- renderLeaflet({makeCensusPlot("Female", varsToPlot)})
+  output$WhitePlot <- renderLeaflet({makeCensusPlot("White", varsToPlot)})
+  output$BlackPlot <- renderLeaflet({makeCensusPlot("Black", varsToPlot)})
+  output$OtherPlot <- renderLeaflet({makeCensusPlot("Other", varsToPlot)})
+  output$HispanicPlot <- renderLeaflet({makeCensusPlot("Hispanic", varsToPlot)})
+  output$CitizenPlot <- renderLeaflet({makeCensusPlot("Citizen", varsToPlot)})
+  output$NotCitizenPlot <- renderLeaflet({makeCensusPlot("NotCitizen", varsToPlot)})
+  output$engOnlyPlot <- renderLeaflet({makeCensusPlot("engOnly", varsToPlot)})
+  output$spanishPlot <- renderLeaflet({makeCensusPlot("spanish", varsToPlot)})
+  output$spanishStrEPlot <- renderLeaflet({makeCensusPlot("spanishStrE", varsToPlot)})
+  output$spanishWeakEPlot <- renderLeaflet({makeCensusPlot("spanishWeakE", varsToPlot)})
+  output$medFamIncPlot <- renderLeaflet({makeCensusPlot("medFamInc", varsToPlot)})
+  output$perCapitaIncPlot <- renderLeaflet({makeCensusPlot("perCapitaInc", varsToPlot)})
+  output$PovertyPlot <- renderLeaflet({makeCensusPlot("Poverty", varsToPlot)})
+  output$abovePovertyPlot <- renderLeaflet({makeCensusPlot("abovePoverty", varsToPlot)})
+  output$InternetAccessPlot <- renderLeaflet({makeCensusPlot("InternetAccess", varsToPlot)})
+  output$noInternetAccessPlot <- renderLeaflet({makeCensusPlot("noInternetAccess", varsToPlot)})
+  output$DisabilityPlot <- renderLeaflet({makeCensusPlot("Disability", varsToPlot)})
+  output$NoDisabilityPlot <- renderLeaflet({makeCensusPlot("NoDisability", varsToPlot)})
+  output$autoPlot <- renderLeaflet({makeCensusPlot("auto", varsToPlot)})
+  output$publicPlot <- renderLeaflet({makeCensusPlot("public", varsToPlot)})
+  output$walkPlot <- renderLeaflet({makeCensusPlot("walk", varsToPlot)})
+  output$otherPlot <- renderLeaflet({makeCensusPlot("other", varsToPlot)})
+  output$collegePlot <- renderLeaflet({makeCensusPlot("college", varsToPlot)})
   
-  currentIds <- c()
-  observeEvent(input$varToPlot, { #Trigger all this mapping when the checkboxes change
-    for (constraintId in currentIds){ #Start by getting rid of all the maps
-      removeUI(selector = paste0('#',constraintId))
-    }
-    currentIds <<- c()
-    for(item in input$varToPlot){ #For every checked checkbox
-      constraintId <- paste0('Constraint_', item) #Make this constraint ID
-      horizontalId <- paste0('Constraint2_', item) #Make this constraint ID
-      currentIds <<- c(constraintId, horizontalId, currentIds) #And add this ID to this list
-      if(item == 'Pop' | item == 'medFamInc' | item == 'perCapitaInc'){ #If the item is any of these, scale according to the domain becuz these are the variables that are not 0 to 1 range
-        pal <- colorNumeric(palette = "plasma", domain = ri_pop$item, n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
-      } else { #For all the 0 to 1 range percentage things, do one of these
-        # pal <- colorNumeric(palette = "plasma", domain = ri_pop$item, n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
-        pal <- colorNumeric(palette = "plasma", domain = 0:1, n = 10) #This line scales the colors from 0 to 1 for all variables, allowing us to see different info.
+  observeEvent(input$varToPlot, {
+    # print("hello")
+    shown <- input$varToPlot
+    for(item in censusVarChoices){
+      if(!item %in% shown){
+        # print(item)
+        hide(item)
       }
-      labels <- sprintf( #Make a list of labels with HTML styling for each census tract
-        "<strong>%s</strong><br/>variable = %g",
-        str_extract(ri_pop$NAME, "^([^,]*)"), ri_pop[[item]] #Fill in the tract name, formatted to just the census tract number, and the value of this column
-      ) %>% lapply(htmltools::HTML)
-      insertUI( #Add a UI element
-        selector = '#censusPlaceholderConstraint', #After the censusPlaceholderConstraint div
-        ui = tags$div(id = constraintId, #Give this UI div an ID of the previously defined ID name
-                      ri_pop %>% #Put this big ol map thing inside this div
-                        # st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
-                        leaflet() %>% #Creates leaflet pane
-                        addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
-                        addPolygons(
-                          stroke = FALSE, #Creates the polygons to overlay on the map, with parameters
-                          smoothFactor = 0,
-                          fillOpacity = 0.7,
-                          color = ~ pal(get(item)),
-                          label = labels, #Add the label
-                          labelOptions = labelOptions( #Add label styling
-                            style = list("font-weight" = "normal", padding = "3px 8px"),
-                            textsize = "15px",
-                            direction = "auto")
-                        ) %>%
-                        addLegend("bottomright", #Adds the legend
-                                  pal = pal,
-                                  values = ~ get(item),
-                                  title = item,
-                                  opacity = 1)
-        )
-      )
-      insertUI( #Add a horizontal line
-        selector = '#censusPlaceholderConstraint', #Add the line after the placeholderConstraint div
-        ui = tags$hr(id=horizontalId) #This is the horizontal line btw
-      )
     }
-  })
+    for(item in shown){
+      show(item)
+    }
+    # varsToPlot <- shown
+  }, ignoreInit = FALSE)
+  updateCheckboxGroupInput(session, "varToPlot", selected = c("Pop"))
+  
   
   
   setupPlots <- reactive({ #Reactive function to read the CSVs and filter based on the inputs. Runs once every time the inputs are changed, instead of 3 times (1 for each map)

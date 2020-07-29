@@ -236,7 +236,7 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
           <td>%g</td>
         </tr>
         <tr>
-          <td>Standard Deviation of Mean Available/Day</td>
+          <td>Standard Deviation of Available/Day</td>
           <td>%g</td>
         </tr>
         <tr>
@@ -248,7 +248,7 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
           <td>%g</td>
         </tr>
         <tr>
-          <td>Standard Deviation of Mean Available %%</td>
+          <td>Standard Deviation of Available %%</td>
           <td>%g</td>
         </tr>
         <tr>
