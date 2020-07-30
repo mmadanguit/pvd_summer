@@ -160,7 +160,7 @@ ui <- fluidPage(
            div(id = "college", leafletOutput("collegePlot"), br()),
         )
     ),
-    column(4, id = "scooterCol", style = "padding: 5px",
+    column(4, id = "scooterCol", style = "padding: 5px; width: 33.33%",
         wellPanel(style = "overflow-y:scroll; height: 95vh",
            div(id = "pickupMapDiv",
                h3("Scooter Variable Map"),
@@ -229,8 +229,10 @@ server <- function(input, output, session) {
     # print(shown)
     if(is.null(shown)){
       hide("censusCol")
+      shinyjs::runjs("document.getElementById('scooterCol').style.width = '66.66%';")
     } else {
       show("censusCol")
+      shinyjs::runjs("document.getElementById('scooterCol').style.width = '33.33%';")
     }
     # varsToPlot <- shown
   }, ignoreInit = TRUE, ignoreNULL = FALSE)
