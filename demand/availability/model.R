@@ -7,6 +7,7 @@ source("demand/availability/dataPrep/mapTo.R")
 # fol <- "/home/marion/PVDResearch/Data/demandData/"
 # demandLatLng  <- read.csv(paste0(fol, "demandLatLng.csv")) 
 # demandTRACT  <- read.csv(paste0(fol, "demandTRACT.csv")) 
+tripsVariables <- c("meanTrips", "medTrips", "stdTrips")
 
 avg <- function(trips, latLng = FALSE, type = "demand") {
   "Find daily average for trip data over period of time.
@@ -177,8 +178,13 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
   # Log transform to get color scale
   zcolData <- as.data.frame(tripData)[,zcol]
   tripData$logzcol <- log(zcolData+0.001)
-  pal <- colorNumeric(palette = "plasma", domain = tripData$logzcol)
-  print(tripData)
+  legendVals <- tripData$logzcol
+  if(zcol %in% tripsVariables & type != "difference"){
+    legendVals <- c(log(0.001), legendVals, log(350))
+  }
+  pal <- colorNumeric(palette = "plasma", domain = legendVals)
+  
+  # print(tripData)
   
   popupHTML <- sprintf( #Make a list of labels with HTML styling for each census tract
     "<style>
@@ -289,7 +295,7 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
                 popup = popupHTML,
                 highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
                 ) %>%
-    addLegend(position = "bottomright", pal = pal, values = tripData$logzcol,
+    addLegend(position = "bottomright", pal = pal, values = legendVals,
               title = "Providence",  
               labFormat = labelFormat(suffix="", transform = function(x) exp(x)-0.001,digits=2),
               opacity = 1)
