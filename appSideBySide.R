@@ -73,7 +73,7 @@ makeCensusPlot <- function(item, varToPlot){
     ) %>% lapply(htmltools::HTML)
     
     censusPlot <- ri_pop %>% #Put this big ol map thing inside this div
-      st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
+      # st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
       leaflet() %>% #Creates leaflet pane
       addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
       addPolygons(
@@ -101,80 +101,84 @@ makeCensusPlot <- function(item, varToPlot){
 }
 
 ui <- fluidPage(
-   useShinyjs(),
-
-   sidebarPanel(
-     fileInput("demandTRACT", "Choose demandTRACT.csv",
-               multiple = FALSE,
-               accept = c("text/csv",
-                          "text/comma-separated-values")),
-     fileInput("demandLatLng", "Choose demandLatLng.csv",
-               multiple = FALSE,
-               accept = c("text/csv",
-                          "text/comma-separated-values")),
-     dateRangeInput("availabilityDateRange", "Date Range to Include",
-                    start = "2019-5-01",
-                    end = "2019-9-30",
-                    min = "2018-11-01",
-                    max = "2019-10-31"),
-     checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
-     checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
-     radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
-     radioButtons("zCol", "Scooter Variable", choices = scooterVarChoices),
-     bsTooltip("zCol", zColTooltipText),
-     checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = c()), #Defines which checkboxes to use
-     p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul")
-   ),
-   # titlePanel("Availability Maps"),
-   mainPanel(
-     column(6,
-      h3("Census Maps"),
-      # Output: Maps will go here
-      # tags$div(id = 'censusPlaceholderConstraint') #Placeholder constraint to know where to put maps
-      div(id = "Pop", leafletOutput("PopPlot"), br()),
-      div(id = "Male", leafletOutput("MalePlot"), br()),
-      div(id = "Female", leafletOutput("FemalePlot"), br()),
-      div(id = "White", leafletOutput("WhitePlot"), br()),
-      div(id = "Black", leafletOutput("BlackPlot"), br()),
-      div(id = "Other", leafletOutput("OtherPlot"), br()),
-      div(id = "Hispanic", leafletOutput("HispanicPlot"), br()),
-      div(id = "Citizen", leafletOutput("CitizenPlot"), br()),
-      div(id = "NotCitizen", leafletOutput("NotCitizenPlot"), br()),
-      div(id = "engOnly", leafletOutput("engOnlyPlot"), br()),
-      div(id = "spanish", leafletOutput("spanishPlot"), br()),
-      div(id = "spanishStrE", leafletOutput("spanishStrEPlot"), br()),
-      div(id = "spanishWeakE", leafletOutput("spanishWeakEPlot"), br()),
-      div(id = "medFamInc", leafletOutput("medFamIncPlot"), br()),
-      div(id = "perCapitaInc", leafletOutput("perCapitaIncPlot"), br()),
-      div(id = "Poverty", leafletOutput("PovertyPlot"), br()),
-      div(id = "abovePoverty", leafletOutput("abovePovertyPlot"), br()),
-      div(id = "InternetAccess", leafletOutput("InternetAccessPlot"), br()),
-      div(id = "noInternetAccess", leafletOutput("noInternetAccessPlot"), br()),
-      div(id = "Disability", leafletOutput("DisabilityPlot"), br()),
-      div(id = "NoDisability", leafletOutput("NoDisabilityPlot"), br()),
-      div(id = "auto", leafletOutput("autoPlot"), br()),
-      div(id = "public", leafletOutput("publicPlot"), br()),
-      div(id = "walk", leafletOutput("walkPlot"), br()),
-      div(id = "other", leafletOutput("otherPlot"), br()),
-      div(id = "college", leafletOutput("collegePlot"), br()),
-     ),
-     column(6,
-      div(id = "pickupMapDiv",
-        h3("Scooter Variable Map"),
-        leafletOutput("pickupMapPlot"), #This is where the map will go
-        hr(),
-      ),
-      div(id = "demandMapDiv",
-        h3("Estimated Demand Map"),
-        leafletOutput("demandMapPlot"), #This is where the map will go
-        hr(),
-      ),
-      div(id = "differenceMapDiv",
-        h3("Difference Map"),
-        leafletOutput("differenceMapPlot"), #This is where the map will go
-        hr(),
-      )
-     )
+  useShinyjs(),
+  br(),
+  sidebarPanel(style = "overflow-y:scroll; height: 95vh",
+    fileInput("demandTRACT", "Choose demandTRACT.csv",
+              multiple = FALSE,
+              accept = c("text/csv",
+                         "text/comma-separated-values")),
+    fileInput("demandLatLng", "Choose demandLatLng.csv",
+              multiple = FALSE,
+              accept = c("text/csv",
+                         "text/comma-separated-values")),
+    dateRangeInput("availabilityDateRange", "Date Range to Include",
+                   start = "2019-5-01",
+                   end = "2019-9-30",
+                   min = "2018-11-01",
+                   max = "2019-10-31"),
+    checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
+    checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
+    radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
+    radioButtons("zCol", "Scooter Variable", choices = scooterVarChoices),
+    bsTooltip("zCol", zColTooltipText),
+    checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = c()), #Defines which checkboxes to use
+    p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul")
+  ),
+  # titlePanel("Availability Maps"),
+  mainPanel(
+    column(6,
+        wellPanel(style = "overflow-y:scroll; height: 95vh",
+           h3("Census Maps"),
+           # Output: Maps will go here
+           # tags$div(id = 'censusPlaceholderConstraint') #Placeholder constraint to know where to put maps
+           div(id = "Pop", leafletOutput("PopPlot"), br()),
+           div(id = "Male", leafletOutput("MalePlot"), br()),
+           div(id = "Female", leafletOutput("FemalePlot"), br()),
+           div(id = "White", leafletOutput("WhitePlot"), br()),
+           div(id = "Black", leafletOutput("BlackPlot"), br()),
+           div(id = "Other", leafletOutput("OtherPlot"), br()),
+           div(id = "Hispanic", leafletOutput("HispanicPlot"), br()),
+           div(id = "Citizen", leafletOutput("CitizenPlot"), br()),
+           div(id = "NotCitizen", leafletOutput("NotCitizenPlot"), br()),
+           div(id = "engOnly", leafletOutput("engOnlyPlot"), br()),
+           div(id = "spanish", leafletOutput("spanishPlot"), br()),
+           div(id = "spanishStrE", leafletOutput("spanishStrEPlot"), br()),
+           div(id = "spanishWeakE", leafletOutput("spanishWeakEPlot"), br()),
+           div(id = "medFamInc", leafletOutput("medFamIncPlot"), br()),
+           div(id = "perCapitaInc", leafletOutput("perCapitaIncPlot"), br()),
+           div(id = "Poverty", leafletOutput("PovertyPlot"), br()),
+           div(id = "abovePoverty", leafletOutput("abovePovertyPlot"), br()),
+           div(id = "InternetAccess", leafletOutput("InternetAccessPlot"), br()),
+           div(id = "noInternetAccess", leafletOutput("noInternetAccessPlot"), br()),
+           div(id = "Disability", leafletOutput("DisabilityPlot"), br()),
+           div(id = "NoDisability", leafletOutput("NoDisabilityPlot"), br()),
+           div(id = "auto", leafletOutput("autoPlot"), br()),
+           div(id = "public", leafletOutput("publicPlot"), br()),
+           div(id = "walk", leafletOutput("walkPlot"), br()),
+           div(id = "other", leafletOutput("otherPlot"), br()),
+           div(id = "college", leafletOutput("collegePlot"), br()),
+        )
+    ),
+    column(6,
+        wellPanel(style = "overflow-y:scroll; height: 95vh",
+           div(id = "pickupMapDiv",
+               h3("Scooter Variable Map"),
+               leafletOutput("pickupMapPlot"), #This is where the map will go
+               hr(),
+           ),
+           div(id = "demandMapDiv",
+               h3("Estimated Demand Map"),
+               leafletOutput("demandMapPlot"), #This is where the map will go
+               hr(),
+           ),
+           div(id = "differenceMapDiv",
+               h3("Difference Map"),
+               leafletOutput("differenceMapPlot"), #This is where the map will go
+               hr(),
+           )
+        )
+    )
   )
 )
 
