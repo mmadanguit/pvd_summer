@@ -95,7 +95,7 @@ geoData <- function(trips) {
     arrange(TRACT) %>% 
     filter(as.logical(match(TRACT, trips$TRACT)))
   trips <- trips %>%
-    add_column(GEOMETRY = geoData$geometry, NAME = geoData$NAME)
+    add_column(GEOMETRY = geoData$geometry, NAME = str_extract(geoData$NAME, "^([^,]*)"),)
   return(st_as_sf(trips, crs = 4326))
 }
 
@@ -131,7 +131,7 @@ geoLatLng <- function(trips) {
         st_cast(st_combine(g),"POLYGON")}
     ))
   trips$geometry <- polys$geometry
-  trips$NAME <- paste0("Lat: ", trips$LAT, ", LNG:", trips$LNG)
+  trips$NAME <- paste0("Lat: ", trips$LAT, ", Long: ", trips$LNG)
   return(st_as_sf(trips))
 }
 
@@ -177,7 +177,7 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
   # Log transform to get color scale
   zcolData <- as.data.frame(tripData)[,zcol]
   tripData$logzcol <- log(zcolData+0.001)
-  pal <- colorNumeric(palette = "Spectral", domain = tripData$logzcol, reverse=TRUE)
+  pal <- colorNumeric(palette = "plasma", domain = tripData$logzcol)
   print(tripData)
   
   popupHTML <- sprintf( #Make a list of labels with HTML styling for each census tract
@@ -202,7 +202,7 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
       </tr>
     </table>
     ",
-    str_extract(tripData$NAME, "^([^,]*)"),
+    tripData$NAME,
     tripData$meanTrips,
     tripData$medTrips,
     tripData$stdTrips
@@ -262,7 +262,7 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
         </tr>
       </table>
     ",
-      str_extract(tripData$NAME, "^([^,]*)"),
+      tripData$NAME,
       tripData$meanTrips,
       tripData$medTrips,
       tripData$stdTrips,
