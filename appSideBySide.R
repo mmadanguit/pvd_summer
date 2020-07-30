@@ -101,32 +101,33 @@ makeCensusPlot <- function(item, varToPlot){
 
 ui <- fluidPage(
   useShinyjs(),
-  br(),
-  sidebarPanel(style = "overflow-y:scroll; height: 95vh",
-    fileInput("demandTRACT", "Choose demandTRACT.csv",
-              multiple = FALSE,
-              accept = c("text/csv",
-                         "text/comma-separated-values")),
-    fileInput("demandLatLng", "Choose demandLatLng.csv",
-              multiple = FALSE,
-              accept = c("text/csv",
-                         "text/comma-separated-values")),
-    dateRangeInput("availabilityDateRange", "Date Range to Include",
-                   start = "2019-5-01",
-                   end = "2019-9-30",
-                   min = "2018-11-01",
-                   max = "2019-10-31"),
-    checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
-    checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
-    radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
-    radioButtons("zCol", "Scooter Variable", choices = scooterVarChoices),
-    bsTooltip("zCol", zColTooltipText),
-    checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = c()), #Defines which checkboxes to use
-    p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul")
+  # mainPanel(
+    column(4, style = "padding: 5px",
+      wellPanel(style = "overflow-y:scroll; height: 95vh",
+        fileInput("demandTRACT", "Choose demandTRACT.csv",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values")),
+        fileInput("demandLatLng", "Choose demandLatLng.csv",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values")),
+        dateRangeInput("availabilityDateRange", "Date Range to Include",
+                       start = "2019-5-01",
+                       end = "2019-9-30",
+                       min = "2018-11-01",
+                       max = "2019-10-31"),
+        checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE),
+        checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
+        radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")),
+        radioButtons("zCol", "Scooter Variable", choices = scooterVarChoices),
+        bsTooltip("zCol", zColTooltipText),
+        checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = c()), #Defines which checkboxes to use
+        p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul")
+      )
   ),
   # titlePanel("Availability Maps"),
-  mainPanel(
-    column(6,
+    column(4, style = "padding: 5px",
         wellPanel(style = "overflow-y:scroll; height: 95vh",
            h3("Census Maps"),
            # Output: Maps will go here
@@ -159,7 +160,7 @@ ui <- fluidPage(
            div(id = "college", leafletOutput("collegePlot"), br()),
         )
     ),
-    column(6,
+    column(4, style = "padding: 5px",
         wellPanel(style = "overflow-y:scroll; height: 95vh",
            div(id = "pickupMapDiv",
                h3("Scooter Variable Map"),
@@ -178,7 +179,7 @@ ui <- fluidPage(
            )
         )
     )
-  )
+  # )
 )
 
 # Define server logic to load, map, and label selected datasets
