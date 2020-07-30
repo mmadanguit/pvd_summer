@@ -280,11 +280,14 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
   mv <- leaflet() %>% 
     addProviderTiles("CartoDB.Positron") %>%
     addPolygons(data = tripData, 
-                stroke = FALSE,
+                weight = 1,
+                color = "#000000",
+                opacity = 1,
                 fillOpacity = 0.7,
                 fillColor = ~pal(logzcol),
                 smoothFactor = 0,
-                popup = popupHTML #paste("Value: ", zcolData, "<br>")
+                popup = popupHTML,
+                highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
                 ) %>%
     addLegend(position = "bottomright", pal = pal, values = tripData$logzcol,
               title = "Providence",  

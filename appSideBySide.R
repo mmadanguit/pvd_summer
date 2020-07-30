@@ -76,16 +76,15 @@ makeCensusPlot <- function(item, varToPlot){
       # st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
       leaflet() %>% #Creates leaflet pane
       addProviderTiles(provider = "CartoDB.Positron") %>% #No clue what this does tbh
-      addPolygons(
-        stroke = FALSE, #Creates the polygons to overlay on the map, with parameters
+      addPolygons(#Creates the polygons to overlay on the map, with parameters
+        weight = 1,
+        color = "#000000",
+        opacity = 1,
         smoothFactor = 0,
         fillOpacity = 0.7,
-        color = ~ pal(get(item)),
-        popup = popupHTML #Add the label
-        # labelOptions = labelOptions( #Add label styling
-        #   style = list("font-weight" = "normal", padding = "3px 8px"),
-        #   textsize = "15px",
-        #   direction = "auto")
+        fillColor = ~ pal(get(item)),
+        popup = popupHTML, #Add the label
+        highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
       ) %>%
       addLegend("bottomright", #Adds the legend
                 pal = pal,
