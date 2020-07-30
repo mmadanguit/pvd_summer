@@ -127,7 +127,7 @@ ui <- fluidPage(
       )
   ),
   # titlePanel("Availability Maps"),
-    column(4, style = "padding: 5px",
+    column(4, id = "censusCol", style = "padding: 5px",
         wellPanel(style = "overflow-y:scroll; height: 95vh",
            h3("Census Maps"),
            # Output: Maps will go here
@@ -160,7 +160,7 @@ ui <- fluidPage(
            div(id = "college", leafletOutput("collegePlot"), br()),
         )
     ),
-    column(4, style = "padding: 5px",
+    column(4, id = "scooterCol", style = "padding: 5px",
         wellPanel(style = "overflow-y:scroll; height: 95vh",
            div(id = "pickupMapDiv",
                h3("Scooter Variable Map"),
@@ -226,8 +226,14 @@ server <- function(input, output, session) {
     for(item in shown){
       show(item)
     }
+    # print(shown)
+    if(is.null(shown)){
+      hide("censusCol")
+    } else {
+      show("censusCol")
+    }
     # varsToPlot <- shown
-  }, ignoreInit = FALSE)
+  }, ignoreInit = TRUE, ignoreNULL = FALSE)
   updateCheckboxGroupInput(session, "varToPlot", selected = c("Pop"))
   
   
