@@ -120,6 +120,7 @@ ui <- fluidPage(
   ),
   column(4, id = "censusCol", style = "padding: 5px; width: 35%", #Forcibly set width so the overall width stays the same when changing the scooterCol width
     wellPanel(style = "overflow-y:scroll; height: 95vh", #Independently scroll this column
+       h3('Census Maps'),
 
        div(id = "Pop", leafletOutput("PopPlot"), br()),
        div(id = "Male", leafletOutput("MalePlot"), br()),
