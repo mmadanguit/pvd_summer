@@ -177,12 +177,12 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
 
   # Log transform to get color scale
   zcolData <- as.data.frame(tripData)[,zcol]
-  tripData$logzcol <- log(zcolData+0.001)
+  tripData$logzcol <- log(zcolData+0.001) #Get the log of the selected zcol and add that as a column
   legendVals <- tripData$logzcol
-  if(zcol %in% tripsVariables & type != "difference"){
-    legendVals <- c(log(0.001), legendVals, log(350))
+  if(zcol %in% tripsVariables & type != "difference"){ #If meanTrips, medTrips, or stdTrips and making a pickup or estimated demand map
+    legendVals <- c(log(0.001), legendVals, log(350)) #Add log(0.001) to the beginning and log(350) to the end of the legend vals 
   }
-  pal <- colorNumeric(palette = "plasma", domain = legendVals)
+  pal <- colorNumeric(palette = "plasma", domain = legendVals) #Make the domain of the color scale the legend values. The modification adding log(350) makes the colors constant for comparing pickup and demand
   
   # print(tripData)
   
@@ -290,14 +290,14 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
                 color = "#000000",
                 opacity = 1,
                 fillOpacity = 0.7,
-                fillColor = ~pal(logzcol),
+                fillColor = ~pal(logzcol), #Colors based on the log of the selected zcol
                 smoothFactor = 0,
                 popup = popupHTML,
                 highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
                 ) %>%
     addLegend(position = "bottomright", pal = pal, values = legendVals,
               title = "Providence",  
-              labFormat = labelFormat(suffix="", transform = function(x) exp(x)-0.001,digits=2),
+              labFormat = labelFormat(suffix="", transform = function(x) exp(x)-0.001,digits=2), #Labels are now logarithmically spaced
               opacity = 1)
   
   return(mv)
