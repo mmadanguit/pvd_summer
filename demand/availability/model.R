@@ -87,7 +87,7 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
              diffMeanTrips = meanAdjTrips-meanTrips,
              diffMedTrips = medAdjTrips-medTrips)
   }
-  avg <- avg %>% mutate_if(is.numeric, round, 3) %>% drop_na()
+  avg <- avg %>% mutate_if(is.numeric, round, 3)
   avg[avg == Inf] <- NA
   return(avg)
 }
@@ -184,7 +184,7 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
   if(zcol %in% tripsVariables & type != "difference"){ #If meanTrips, medTrips, or stdTrips and making a pickup or estimated demand map
     legendVals <- c(log(0.001), legendVals, log(350)) #Add log(0.001) to the beginning and log(350) to the end of the legend vals 
   } else if (zcol %in% tripsVariables & type == "difference"){
-    legendVals <- c(log(0.001), legendVals, log(20))
+    legendVals <- c(log(0.001), legendVals, log(1))
   }
   pal <- colorNumeric(palette = "plasma", domain = legendVals) #Make the domain of the color scale the legend values. The modification adding log(350) makes the colors constant for comparing pickup and demand
   
@@ -284,6 +284,40 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
       tripData$stdAvailPct,
       tripData$zeroTrips,
       tripData$zeroAvailPct
+    ) %>% lapply(htmltools::HTML)
+  }
+  if(type == "difference"){
+    popupHTML <- sprintf( #Make a list of labels with HTML styling for each census tract
+      "<style>
+        th, td {
+          padding-right: 5px;
+        }
+      </style>
+      <strong>%s</strong><br>
+      <table>
+        <tr>
+          <td>Mean Trips/Day</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Median Trips/Day</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Mean Trips/Day Difference</td>
+          <td>%g</td>
+        </tr>
+        <tr>
+          <td>Median Trips/Day Difference</td>
+          <td>%g</td>
+        </tr>
+      </table>
+    ",
+      tripData$NAME,
+      tripData$meanTrips,
+      tripData$medTrips,
+      tripData$diffMeanTrips,
+      tripData$diffMedTrips
     ) %>% lapply(htmltools::HTML)
   }
   
