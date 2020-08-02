@@ -72,7 +72,6 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
                 zeroTrips = sum(TRIPS == 0, na.rm = TRUE)/numDays, #This does zeroTrips as a % of every day that any tract has data
                 # zeroTrips = sum(TRIPS == 0, na.rm = TRUE)/length(ADJTRIPS), #This does zeroTrips as a % of every day that this tract has data
                 
-                
                 meanAvailPct = mean(AVAILPCT, na.rm = TRUE),
                 medAvailPct = median(AVAILPCT, na.rm = TRUE),
                 stdAvailPct = sd(AVAILPCT, na.rm = TRUE),
@@ -82,10 +81,11 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
                 stdAvail = sd(COUNTTIME, na.rm = TRUE)
                 # zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE)
                 ) %>%
-      mutate(meanTrips = meanAdjTrips-meanTrips,
-             medTrips = medAdjTrips-medTrips,
-             stdTrips = stdAdjTrips-stdTrips,
-             zeroTrips = zeroAdjTrips-zeroTrips)
+      mutate(meanTrips = meanTrips/meanAdjTrips,
+             medTrips = medTrips/medAdjTrips,
+             stdTrips = 0,
+             diffMeanTrips = meanAdjTrips-meanTrips,
+             diffMedTrips = medAdjTrips-medTrips)
   }
   avg <- avg %>% mutate_if(is.numeric, round, 3) %>% drop_na()
   avg[avg == Inf] <- NA
