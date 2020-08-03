@@ -87,7 +87,7 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
              diffMeanTrips = meanAdjTrips-meanTrips,
              diffMedTrips = medAdjTrips-medTrips)
   }
-  avg <- avg %>% mutate_if(is.numeric, round, 1)
+  avg <- avg %>% mutate_if(is.numeric, round, 3)
   avg[avg == Inf] <- NA
   return(avg)
 }
@@ -330,7 +330,7 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
                 fillOpacity = 0.7,
                 fillColor = ~pal(logzcol), #Colors based on the log of the selected zcol
                 smoothFactor = 0,
-                label = round(exp(tripData$logzcol), 3),
+                label = round(exp(tripData$logzcol), 1),
                 labelOptions = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE),
                 popup = popupHTML,
                 highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
