@@ -81,9 +81,8 @@ avg <- function(trips, latLng = FALSE, type = "demand") {
                 stdAvail = sd(COUNTTIME, na.rm = TRUE)
                 # zeroAvail = sum(COUNTTIME == 0, na.rm = TRUE)
                 ) %>%
-      mutate(meanTrips = meanTrips/meanAdjTrips,
-             medTrips = medTrips/medAdjTrips,
-             stdTrips = 0,
+      mutate(meanTrips = (meanAdjTrips-meanTrips)/meanAdjTrips,
+             medTrips = (medAdjTrips-medTrips)/medAdjTrips,
              diffMeanTrips = meanAdjTrips-meanTrips,
              diffMedTrips = medAdjTrips-medTrips)
   }
