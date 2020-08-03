@@ -83,8 +83,8 @@ makeCensusPlot <- function(item, varToPlot){
       smoothFactor = 0,
       fillOpacity = 0.7,
       fillColor = ~ pal(get(item)),
-      # label = ~round(get(item), 3),
-      # labelOptions = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE),
+      label = ~round(get(item), 1),
+      labelOptions = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE),
       popup = popupHTML, #Add the label
       highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
     ) %>%
