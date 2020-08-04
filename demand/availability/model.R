@@ -180,12 +180,18 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
   zcolData <- as.data.frame(tripData)[,zcol]
   tripData$logzcol <- log(zcolData+0.001) #Get the log of the selected zcol and add that as a column
   legendVals <- tripData$logzcol
+  if(type == "difference"){
+    tripData$logzcol <- zcolData
+  }
   if(zcol %in% tripsVariables & type != "difference"){ #If meanTrips, medTrips, or stdTrips and making a pickup or estimated demand map
     legendVals <- c(log(0.001), legendVals, log(350)) #Add log(0.001) to the beginning and log(350) to the end of the legend vals 
   } else if (zcol %in% tripsVariables & type == "difference"){
     legendVals <- c(log(0.001), legendVals, log(1))
   }
   pal <- colorNumeric(palette = "plasma", domain = legendVals) #Make the domain of the color scale the legend values. The modification adding log(350) makes the colors constant for comparing pickup and demand
+  if(type == "difference"){
+    pal <- colorNumeric(palette = "plasma", domain = 0:1)
+  }
   
   # print(tripData)
   
@@ -320,24 +326,47 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
     ) %>% lapply(htmltools::HTML)
   }
   
-  mv <- leaflet() %>% 
-    addProviderTiles("CartoDB.Positron") %>%
-    addPolygons(data = tripData, 
-                weight = 1,
-                color = "#000000",
-                opacity = 1,
-                fillOpacity = 0.7,
-                fillColor = ~pal(logzcol), #Colors based on the log of the selected zcol
-                smoothFactor = 0,
-                label = round(exp(tripData$logzcol), 1),
-                labelOptions = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE),
-                popup = popupHTML,
-                highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
-                ) %>%
-    addLegend(position = "bottomright", pal = pal, values = legendVals,
-              title = "Providence",  
-              labFormat = labelFormat(suffix="", transform = function(x) exp(x)-0.001,digits=2), #Labels are now logarithmically spaced
-              opacity = 1)
+  if(type != "difference"){
+  
+    mv <- leaflet() %>% 
+      addProviderTiles("CartoDB.Positron") %>%
+      addPolygons(data = tripData, 
+                  weight = 1,
+                  color = "#000000",
+                  opacity = 1,
+                  fillOpacity = 0.7,
+                  fillColor = ~pal(logzcol), #Colors based on the log of the selected zcol
+                  smoothFactor = 0,
+                  label = round(exp(tripData$logzcol), 1),
+                  labelOptions = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE),
+                  popup = popupHTML,
+                  highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
+                  ) %>%
+      addLegend(position = "bottomright", pal = pal, values = legendVals,
+                title = "Providence",  
+                labFormat = labelFormat(suffix="", transform = function(x) exp(x)-0.001,digits=2), #Labels are now logarithmically spaced
+                opacity = 1)
+  
+  } else {
+    mv <- leaflet() %>% 
+      addProviderTiles("CartoDB.Positron") %>%
+      addPolygons(data = tripData, 
+                  weight = 1,
+                  color = "#000000",
+                  opacity = 1,
+                  fillOpacity = 0.7,
+                  fillColor = ~pal(logzcol), #Colors based on the log of the selected zcol
+                  smoothFactor = 0,
+                  label = round(tripData$logzcol, 1),
+                  labelOptions = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE),
+                  popup = popupHTML,
+                  highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
+      ) %>%
+      addLegend(position = "bottomright", pal = pal, values = 0:1,
+                title = "Providence",  
+                # labFormat = labelFormat(suffix="", transform = function(x) x, digits=2), #Labels are now logarithmically spaced
+                opacity = 1)
+  }
   
   return(mv)
 }
