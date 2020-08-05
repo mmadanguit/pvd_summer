@@ -156,7 +156,7 @@ genMap <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", c
   return(mv@map)
 }
 
-genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 10) {
+genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips", colors = 10, showLabels = FALSE) {
   "Generate mapview for demand/pickup data with updated colors"
   if (latLng) {
     # Fake tract before grouping
@@ -325,7 +325,12 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
       tripData$diffMedTrips
     ) %>% lapply(htmltools::HTML)
   }
-  
+  label = NULL
+  labelOptions = NULL
+  if(showLabels){
+    label = round(exp(tripData$logzcol), 1)
+    labelOptions = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE)
+  }
   if(type != "difference"){
   
     mv <- leaflet() %>% 
@@ -337,8 +342,8 @@ genMapCol <- function(trips, latLng = FALSE, type = "demand", zcol = "meanTrips"
                   fillOpacity = 0.7,
                   fillColor = ~pal(logzcol), #Colors based on the log of the selected zcol
                   smoothFactor = 0,
-                  label = round(exp(tripData$logzcol), 1),
-                  labelOptions = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE),
+                  label = label,
+                  labelOptions = labelOptions,
                   popup = popupHTML,
                   highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
                   ) %>%
