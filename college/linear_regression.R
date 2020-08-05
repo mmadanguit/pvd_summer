@@ -9,8 +9,7 @@ source('downtown_loc.R')
 source('college_loc.R')
 source('mapToTract.R')
 
-panel.cor <- function(x, y, digits=2, prefix="", cex.cor) 
-{
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor) {
   usr <- par("usr"); on.exit(par(usr)) 
   par(usr = c(0, 1, 0, 1)) 
   r <- abs(cor(x, y)) 
@@ -34,7 +33,7 @@ get_unique_loc <- function(data) {
   Only get the unique combinations of LAT LNG
   "
   data <- data %>%
-    select(-c(START, END, COUNT, AVAIL, DATE, DAY)) %>%
+    select(-c(COUNT)) %>%
     distinct(LAT, LNG)
   
   return(data)
@@ -105,8 +104,8 @@ near_college_check <- function(data, buffer) {
 find_census_val_riwac <- function(data, ri_data, census_name, col_name) {
   # get unique lat lng locations -> therefore get unique GEOIDs
   loc <- get_unique_loc(data) %>%
-         mapToTract() %>%
-         mutate(rounded_geocode = str_sub(as.character(GEOID), 1, 11))
+    mapToTract() %>%
+    mutate(rounded_geocode = str_sub(as.character(GEOID), 1, 11))
   
   # necessary step for parameterized column names
   census_name <- c(census_name)
@@ -122,7 +121,7 @@ find_census_val_riwac <- function(data, ri_data, census_name, col_name) {
       # get the mean of the census_name values for each ROUNDED_GEOID (basically for each tract)
       sub_ri_wac <- ri_data %>%
         group_by(ROUNDED_GEOID) %>%
-        summarise(COL = mean(get(census_name)))
+        dplyr::summarize(COL = mean(get(census_name)))
       
       row <- which(grepl(loc$rounded_geocode[i], sub_ri_wac$ROUNDED_GEOID))
       data[data$ROUNDED_GEOID == loc$rounded_geocode[i], c(col_name)] <- sub_ri_wac$COL[row]
@@ -135,8 +134,8 @@ find_census_val_riwac <- function(data, ri_data, census_name, col_name) {
 find_census_val_ridat <- function(data, ri_data, census_name, col_name) {
   # get unique lat lng locations -> therefore get unique GEOIDs
   loc <- get_unique_loc(data) %>%
-         mapToTract() %>%
-         mutate(rounded_geocode = str_sub(as.character(GEOID), 1, 11))
+    mapToTract() %>%
+    mutate(rounded_geocode = str_sub(as.character(GEOID), 1, 11))
   
   for (i in 1:dim(loc)[1]) {
     row <- which(grepl(loc$rounded_geocode[i], ri_data$GEOID))
@@ -151,41 +150,17 @@ find_census_val_ridat <- function(data, ri_data, census_name, col_name) {
 }
 
 
-get_density <- function(data) {
-  MI_RADIUS <- 3956
-  sub_data <- data %>%
-              group_by(DATE, ROUNDED_GEOID) %>%
-              summarise(AVG_COUNT = mean(COUNT),
-                        LAT = LAT,
-                        LNG = LNG)
-  print(head(data))
-  print(head(sub_data))
-  
-  for (i in 1:dim(data)[1]) {
-    sum <- 0
-    # ssub_data <- subset(sub_data, data$DATE[i] == sub_data$DATE)
-    ssub_data <- sub_data[(data$DATE[i] == sub_data$DATE),]
-    for (j in 1:dim(ssub_data)[1]) {
-      dist <- haversine(c(data$LAT[i], data$LNG[i]), c(ssub_data$LAT[j], ssub_data$LNG[j]), MI_RADIUS)
-      if (dist < 0.15) {
-        sum <- sum + ssub_data$AVG_COUNT[j]
-      }
-    }
-    data$DENSITY[i] <- sum
-  }
-  
-  return(data)
-}
-
-
 # -------------- PREP PICKUP DATA --------------------
 pickups <- read_csv("~/PVD Summer Research/average_num_available/intervalCountsLATLNG.csv")
 pickups <- pickups %>%
   filter(DATE >= "2019-4-15" & DATE <= "2019-6-15") %>%
+  group_by(LAT, LNG) %>%
+  dplyr::summarize(COUNT = mean(COUNT)) %>%
+  ungroup() %>%
   mutate(DOWNDIST = 0, COLLDIST = 0, NEARCOLLEGE = FALSE) %>%
   dist_to_downtown() %>%
   dist_to_college() %>%
-  near_college_check(0.2)
+  near_college_check(0.2) 
 
 
 # -------------- GEOID RETRIEVAL ---------------------
@@ -216,7 +191,7 @@ data <- data %>%
 na_data <- data[!complete.cases(data), ]
 
 data <- data %>%
-        na.omit()
+  na.omit()
 
 
 # ------- FIND CORRELATION BETWEEN VAIRABLES ---------
@@ -250,9 +225,16 @@ data <- data %>%
 # ----------- MATCHING & PROPENSITY SCORES -----------
 ## add new column of close or far from college value
 # matching_data <- data %>%
-#                  mutate(NEARCOLLEGE = ifelse(NEARCOLLEGE, 1, 0)) %>%
-#                  ungroup()
+#   mutate(NEARCOLLEGE = ifelse(NEARCOLLEGE, 1, 0)) %>%
+#   ungroup()
 # matching_data <- as.data.frame(matching_data)
+# 
+# ######## SHUFFLE #########
+# set.seed(42)
+# rows <- sample(nrow(matching_data))
+# matching_data <- matching_data[rows, ]
+# 
+# matching_data <- matching_data[1:10000, ] 
 # str(matching_data)
 # 
 # 
@@ -271,10 +253,21 @@ data <- data %>%
 # 
 # 
 # # ----------- PROPENSITY SCORE ESTIMATION -------------
-# ps <- glm(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
+# ps <- glm(NEARCOLLEGE ~ log(TOTJOBS+1) + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
 #           family = binomial())
 # summary(ps)
 # 
+# ##################
+# glm.probs = predict(ps, type="response")
+# glm.odds = exp(predict(ps, type="link"))
+# glm.pred = (glm.probs > 0.5)
+# table(glm.pred, matching_data$NEARCOLLEGE)
+# 
+# library(pROC)
+# roc.m = roc(matching_data$NEARCOLLEGE, glm.probs)
+# auc(roc.m)
+# ggroc(data=roc.m)
+# ##################
 # 
 # matching_data$psvalue <- predict(ps, type = "response")
 # library("Hmisc")
@@ -283,11 +276,18 @@ data <- data %>%
 # 
 # 
 # ## conventional matching using Mahalanobis distance - DOESNT WORK
-# m.mahal <- matchit(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
-#                    mahvars = c("TOTJOBS", "DOWNDIST", "POP", "PERCAPITAINC", "POVERTY"),
-#                    caliper = 0.25, calclosest = TRUE, replace = TRUE, distance = "mahalanobis")
-# summary(m.mahal)
+# # m.mahal <- matchit(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
+# #                    mahvars = c("TOTJOBS", "DOWNDIST", "POP", "PERCAPITAINC", "POVERTY"),
+# #                    caliper = 0.25, calclosest = TRUE, replace = TRUE, distance = "mahalanobis")
+# # summary(m.mahal)
 # 
-# m.nn <- matchit(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
-#                 method = "nearest", ratio = 2)
+# m.nn <- matchit(NEARCOLLEGE ~ log(TOTJOBS+1) + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
+#                 method = "nearest", replace = TRUE, ratio = 2)
 # summary(m.nn)
+# 
+# match.data = match.data(m.nn)
+# plot(m.nn, type = "jitter")
+# 
+# 
+# histbackback(split(match.data$psvalue, match.data$NEARCOLLEGE), main = "Propensity score After Matching", 
+#              xlab = c("control", "treatment"))
