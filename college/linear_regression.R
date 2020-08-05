@@ -122,7 +122,7 @@ find_census_val_riwac <- function(data, ri_data, census_name, col_name) {
       # get the mean of the census_name values for each ROUNDED_GEOID (basically for each tract)
       sub_ri_wac <- ri_data %>%
         group_by(ROUNDED_GEOID) %>%
-        summarize(COL = mean(get(census_name)))
+        summarise(COL = mean(get(census_name)))
       
       row <- which(grepl(loc$rounded_geocode[i], sub_ri_wac$ROUNDED_GEOID))
       data[data$ROUNDED_GEOID == loc$rounded_geocode[i], c(col_name)] <- sub_ri_wac$COL[row]
@@ -155,7 +155,7 @@ get_density <- function(data) {
   MI_RADIUS <- 3956
   sub_data <- data %>%
               group_by(DATE, ROUNDED_GEOID) %>%
-              summarize(AVG_COUNT = mean(COUNT),
+              summarise(AVG_COUNT = mean(COUNT),
                         LAT = LAT,
                         LNG = LNG)
   print(head(data))
@@ -249,45 +249,45 @@ data <- data %>%
 # 
 # ----------- MATCHING & PROPENSITY SCORES -----------
 ## add new column of close or far from college value
-matching_data <- data %>%
-                 mutate(NEARCOLLEGE = ifelse(NEARCOLLEGE, 1, 0)) %>%
-                 ungroup()
-matching_data <- as.data.frame(matching_data)
-str(matching_data)
-
-
-# ------------------- PREPROCESSING ------------------
-## 1. Standardized Difference
-treated <- (matching_data$NEARCOLLEGE==1)
-cov <- matching_data[, c(15, 9, 16, 18, 22)]
-std.diff <- apply(cov, 2, function(x) 100*(mean(x[treated]) - mean(x[!treated])) / (sqrt(0.5*(var(x[treated]) + var(x[!treated])))))
-abs(std.diff)
-
-## 2. Chi-square Test
-library("RItools")
-
-xBalance(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
-         report = c("chisquare.test"))
-
-
-# ----------- PROPENSITY SCORE ESTIMATION -------------
-ps <- glm(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
-          family = binomial())
-summary(ps)
-
-
-matching_data$psvalue <- predict(ps, type = "response")
-library("Hmisc")
-histbackback(split(matching_data$psvalue, matching_data$NEARCOLLEGE), main = "Propensity Score Before Matching", 
-             xlab=c("control", "treatment"))
-
-
-## conventional matching using Mahalanobis distance - DOESNT WORK
-m.mahal <- matchit(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
-                   mahvars = c("TOTJOBS", "DOWNDIST", "POP", "PERCAPITAINC", "POVERTY"),
-                   caliper = 0.25, calclosest = TRUE, replace = TRUE, distance = "mahalanobis")
-summary(m.mahal)
-
-m.nn <- matchit(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
-                method = "nearest", ratio = 2)
-summary(m.nn)
+# matching_data <- data %>%
+#                  mutate(NEARCOLLEGE = ifelse(NEARCOLLEGE, 1, 0)) %>%
+#                  ungroup()
+# matching_data <- as.data.frame(matching_data)
+# str(matching_data)
+# 
+# 
+# # ------------------- PREPROCESSING ------------------
+# ## 1. Standardized Difference
+# treated <- (matching_data$NEARCOLLEGE==1)
+# cov <- matching_data[, c(15, 9, 16, 18, 22)]
+# std.diff <- apply(cov, 2, function(x) 100*(mean(x[treated]) - mean(x[!treated])) / (sqrt(0.5*(var(x[treated]) + var(x[!treated])))))
+# abs(std.diff)
+# 
+# ## 2. Chi-square Test
+# library("RItools")
+# 
+# xBalance(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
+#          report = c("chisquare.test"))
+# 
+# 
+# # ----------- PROPENSITY SCORE ESTIMATION -------------
+# ps <- glm(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
+#           family = binomial())
+# summary(ps)
+# 
+# 
+# matching_data$psvalue <- predict(ps, type = "response")
+# library("Hmisc")
+# histbackback(split(matching_data$psvalue, matching_data$NEARCOLLEGE), main = "Propensity Score Before Matching", 
+#              xlab=c("control", "treatment"))
+# 
+# 
+# ## conventional matching using Mahalanobis distance - DOESNT WORK
+# m.mahal <- matchit(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
+#                    mahvars = c("TOTJOBS", "DOWNDIST", "POP", "PERCAPITAINC", "POVERTY"),
+#                    caliper = 0.25, calclosest = TRUE, replace = TRUE, distance = "mahalanobis")
+# summary(m.mahal)
+# 
+# m.nn <- matchit(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
+#                 method = "nearest", ratio = 2)
+# summary(m.nn)
