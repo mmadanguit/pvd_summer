@@ -39,7 +39,7 @@ censusVarChoices <- c(
   "% Hispanic" = 'Hispanic',
   "% Citizen" = 'Citizen',
   "% Non-Citizen" = 'NotCitizen',
-  "% Engligh-Speaking Only" = 'engOnly',
+  "% English-Speaking Only" = 'engOnly',
   "% Spanish-Speaking Only" = 'spanish',
   "% Spanish with Strong English" = 'spanishStrE',
   "% Spanish with Weak English" ='spanishWeakE',
@@ -58,9 +58,8 @@ censusVarChoices <- c(
   "% In College" = 'college'
 )
 zColTooltipText <- "The Available/Day variables are the ones summarizing our model, and therefore show the Estimated Demand and Difference maps. All other variables summarize existing data and therefore only show the first map."
-tripsVariables <- c("meanTrips", "medTrips", "stdTrips")
 
-makeCensusPlot <- function(item, varToPlot){
+makeCensusPlot <- function(item, showLabels = FALSE){
   if(item == 'Pop' | item == 'medFamInc' | item == 'perCapitaInc'){ #If the item is any of these, scale according to the domain becuz these are the variables that are not 0 to 1 range
     pal <- colorNumeric(palette = "plasma", domain = ri_pop$item, n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
   } else { #For all the 0 to 1 range percentage things, do one of these
@@ -72,6 +71,12 @@ makeCensusPlot <- function(item, varToPlot){
     str_extract(ri_pop$NAME, "^([^,]*)"), ri_pop[[item]] #Fill in the tract name, formatted to just the census tract number, and the value of this column
   ) %>% lapply(htmltools::HTML)
   
+  label = NULL
+  labelOpts = NULL
+  if(showLabels){
+    label = ~round(get(item), 3)
+    labelOpts = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE)
+  }
   censusPlot <- ri_pop %>% #Put this big ol map thing inside this div
     # st_transform(crs = "+init=epsg:4326") %>% #Defines the geography info format
     leaflet() %>% #Creates leaflet pane
@@ -83,8 +88,8 @@ makeCensusPlot <- function(item, varToPlot){
       smoothFactor = 0,
       fillOpacity = 0.7,
       fillColor = ~ pal(get(item)),
-      label = ~round(get(item), 3),
-      labelOptions = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE),
+      label = label,
+      labelOptions = labelOpts,
       popup = popupHTML, #Add the label
       highlightOptions = highlightOptions(color = "#FFFFFF", weight = 2, bringToFront = TRUE)
     ) %>%
@@ -101,6 +106,7 @@ ui <- fluidPage(
   useShinyjs(),
   column(4, style = "padding: 5px; width: 30%", #Forcibly set width so the overall width stays the same when changing the scooterCol width
          wellPanel(style = "overflow-y:scroll; height: 95vh", #Independently scroll this column
+                   checkboxInput("showLabels", "Show Labels on Maps", value = TRUE),
                    fileInput("demandTRACT", "Choose demandTRACT.csv", #Two CSV only file inputs
                              multiple = FALSE,
                              accept = c("text/csv", "text/comma-separated-values")),
@@ -179,32 +185,32 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   options(shiny.maxRequestSize = 30*1024^2) #Increase the max CSV upload size
   
-  output$PopPlot <- renderLeaflet({makeCensusPlot("Pop")}) #Render the output of makeCensusPlot(), at top of file, into each plot
-  output$MalePlot <- renderLeaflet({makeCensusPlot("Male")})
-  output$FemalePlot <- renderLeaflet({makeCensusPlot("Female")})
-  output$WhitePlot <- renderLeaflet({makeCensusPlot("White")})
-  output$BlackPlot <- renderLeaflet({makeCensusPlot("Black")})
-  output$OtherPlot <- renderLeaflet({makeCensusPlot("Other")})
-  output$HispanicPlot <- renderLeaflet({makeCensusPlot("Hispanic")})
-  output$CitizenPlot <- renderLeaflet({makeCensusPlot("Citizen")})
-  output$NotCitizenPlot <- renderLeaflet({makeCensusPlot("NotCitizen")})
-  output$engOnlyPlot <- renderLeaflet({makeCensusPlot("engOnly")})
-  output$spanishPlot <- renderLeaflet({makeCensusPlot("spanish")})
-  output$spanishStrEPlot <- renderLeaflet({makeCensusPlot("spanishStrE")})
-  output$spanishWeakEPlot <- renderLeaflet({makeCensusPlot("spanishWeakE")})
-  output$medFamIncPlot <- renderLeaflet({makeCensusPlot("medFamInc")})
-  output$perCapitaIncPlot <- renderLeaflet({makeCensusPlot("perCapitaInc")})
-  output$PovertyPlot <- renderLeaflet({makeCensusPlot("Poverty")})
-  output$abovePovertyPlot <- renderLeaflet({makeCensusPlot("abovePoverty")})
-  output$InternetAccessPlot <- renderLeaflet({makeCensusPlot("InternetAccess")})
-  output$noInternetAccessPlot <- renderLeaflet({makeCensusPlot("noInternetAccess")})
-  output$DisabilityPlot <- renderLeaflet({makeCensusPlot("Disability")})
-  output$NoDisabilityPlot <- renderLeaflet({makeCensusPlot("NoDisability")})
-  output$autoPlot <- renderLeaflet({makeCensusPlot("auto")})
-  output$publicPlot <- renderLeaflet({makeCensusPlot("public")})
-  output$walkPlot <- renderLeaflet({makeCensusPlot("walk")})
-  output$otherPlot <- renderLeaflet({makeCensusPlot("other")})
-  output$collegePlot <- renderLeaflet({makeCensusPlot("college")})
+  output$PopPlot <- renderLeaflet({makeCensusPlot("Pop", input$showLabels)}) #Render the output of makeCensusPlot(), at top of file, into each plot
+  output$MalePlot <- renderLeaflet({makeCensusPlot("Male", input$showLabels)})
+  output$FemalePlot <- renderLeaflet({makeCensusPlot("Female", input$showLabels)})
+  output$WhitePlot <- renderLeaflet({makeCensusPlot("White", input$showLabels)})
+  output$BlackPlot <- renderLeaflet({makeCensusPlot("Black", input$showLabels)})
+  output$OtherPlot <- renderLeaflet({makeCensusPlot("Other", input$showLabels)})
+  output$HispanicPlot <- renderLeaflet({makeCensusPlot("Hispanic", input$showLabels)})
+  output$CitizenPlot <- renderLeaflet({makeCensusPlot("Citizen", input$showLabels)})
+  output$NotCitizenPlot <- renderLeaflet({makeCensusPlot("NotCitizen", input$showLabels)})
+  output$engOnlyPlot <- renderLeaflet({makeCensusPlot("engOnly", input$showLabels)})
+  output$spanishPlot <- renderLeaflet({makeCensusPlot("spanish", input$showLabels)})
+  output$spanishStrEPlot <- renderLeaflet({makeCensusPlot("spanishStrE", input$showLabels)})
+  output$spanishWeakEPlot <- renderLeaflet({makeCensusPlot("spanishWeakE", input$showLabels)})
+  output$medFamIncPlot <- renderLeaflet({makeCensusPlot("medFamInc", input$showLabels)})
+  output$perCapitaIncPlot <- renderLeaflet({makeCensusPlot("perCapitaInc", input$showLabels)})
+  output$PovertyPlot <- renderLeaflet({makeCensusPlot("Poverty", input$showLabels)})
+  output$abovePovertyPlot <- renderLeaflet({makeCensusPlot("abovePoverty", input$showLabels)})
+  output$InternetAccessPlot <- renderLeaflet({makeCensusPlot("InternetAccess", input$showLabels)})
+  output$noInternetAccessPlot <- renderLeaflet({makeCensusPlot("noInternetAccess", input$showLabels)})
+  output$DisabilityPlot <- renderLeaflet({makeCensusPlot("Disability", input$showLabels)})
+  output$NoDisabilityPlot <- renderLeaflet({makeCensusPlot("NoDisability", input$showLabels)})
+  output$autoPlot <- renderLeaflet({makeCensusPlot("auto", input$showLabels)})
+  output$publicPlot <- renderLeaflet({makeCensusPlot("public", input$showLabels)})
+  output$walkPlot <- renderLeaflet({makeCensusPlot("walk", input$showLabels)})
+  output$otherPlot <- renderLeaflet({makeCensusPlot("other", input$showLabels)})
+  output$collegePlot <- renderLeaflet({makeCensusPlot("college", input$showLabels)})
   
   observeEvent(input$varToPlot, {
     shown <- input$varToPlot
@@ -248,12 +254,15 @@ server <- function(input, output, session) {
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    if(!input$zCol %in% tripsVariables){
-      hide("demandMapDiv")
-      hide("differenceMapDiv")
-    } else {
+    if(input$zCol == "meanTrips" | input$zCol == "medTrips"){
       show("demandMapDiv")
       show("differenceMapDiv")
+    } else if(input$zCol == "stdTrips") {
+      show("demandMapDiv")
+      hide("differenceMapDiv")
+    } else {
+      hide("demandMapDiv")
+      hide("differenceMapDiv")
     }
     demand <- read.csv(input$demandTRACT$datapath) #Read the demand files, defaulting to tract edition
     if(latLng == TRUE){
@@ -270,7 +279,7 @@ server <- function(input, output, session) {
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    mvPickup <- req(setupPlots()) %>% genMapCol(latLng = latLng, zcol=input$zCol, type = "pickup") #Get the output from setupPlots and generate the map based on that
+    mvPickup <- req(setupPlots()) %>% genMapCol(latLng = latLng, zcol=input$zCol, type = "pickup", showLabels = input$showLabels) #Get the output from setupPlots and generate the map based on that
     mvPickup #Get the contents of the leaflet map of the mapview output
   })
   
@@ -280,7 +289,7 @@ server <- function(input, output, session) {
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    mvDemand <- req(setupPlots()) %>% genMapCol(latLng = latLng, zcol=input$zCol, type = "demand") #Get the output from setupPlots and generate the map based on that
+    mvDemand <- req(setupPlots()) %>% genMapCol(latLng = latLng, zcol=input$zCol, type = "demand", showLabels = input$showLabels) #Get the output from setupPlots and generate the map based on that
     mvDemand #Get the contents of the leaflet map of the mapview output
   })
   
@@ -290,7 +299,7 @@ server <- function(input, output, session) {
     if(input$tractOrLatLng == "latLng"){
       latLng = TRUE
     }
-    mvDifference <- req(setupPlots()) %>% genMapCol(latLng = latLng, zcol=input$zCol, type = "difference") #Get the output from setupPlots and generate the map based on that
+    mvDifference <- req(setupPlots()) %>% genMapCol(latLng = latLng, zcol=input$zCol, type = "difference", showLabels = input$showLabels) #Get the output from setupPlots and generate the map based on that
     mvDifference #Get the contents of the leaflet map of the mapview output
   })
 }
