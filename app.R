@@ -40,7 +40,7 @@ censusVarChoices <- c(
   "% Citizen" = 'Citizen',
   "% Non-Citizen" = 'NotCitizen',
   "% Engligh-Speaking Only" = 'engOnly',
-  "% Spanish-Speaking Only" = 'spanish',
+  "% Spanish-Speaking" = 'spanish',
   "% Spanish with Strong English" = 'spanishStrE',
   "% Spanish with Weak English" ='spanishWeakE',
   "Median Family Income" = 'medFamInc',
@@ -121,9 +121,9 @@ ui <- fluidPage(
                    ),
                    checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE), #Weekend and weekday filtering checkboxes
                    checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
-                   radioButtons("tractOrLatLng", "Tract or Lat/Long?", choices = c("Model by Tract" = "tract", "Model by Latitude and Longitude" = "latLng")), #Tract/latlng picker
+                   radioButtons("tractOrLatLng", "Tract or Latitude/Longitude?", choices = c("Display by Tract" = "tract", "Display by Latitude and Longitude" = "latLng")), #Tract/latlng picker
                    radioButtons("zCol", "Scooter Variable", choices = scooterVarChoices), #Scooter variables
-                   bsTooltip("zCol", zColTooltipText), #Explainer for above zcol picker
+                   # bsTooltip("zCol", zColTooltipText), #Explainer for above zcol picker
                    checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = c()), #Defines which checkboxes to use
                    p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul") #Hi!
          )
