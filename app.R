@@ -39,7 +39,7 @@ censusVarChoices <- c(
   "% Hispanic" = 'Hispanic',
   "% Citizen" = 'Citizen',
   "% Non-Citizen" = 'NotCitizen',
-  "% Engligh-Speaking Only" = 'engOnly',
+  "% English-Speaking Only" = 'engOnly',
   "% Spanish-Speaking Only" = 'spanish',
   "% Spanish with Strong English" = 'spanishStrE',
   "% Spanish with Weak English" ='spanishWeakE',
