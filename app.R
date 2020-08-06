@@ -31,6 +31,7 @@ scooterVarChoices <- c(
 )
 censusVarChoices <- c(
   "Population" = 'Pop',
+  "Population Density (Mi^2)" = "pop_density",
   "% Male" = 'Male',
   "% Female" = 'Female',
   "% White" = 'White',
@@ -60,11 +61,13 @@ censusVarChoices <- c(
 zColTooltipText <- "The Available/Day variables are the ones summarizing our model, and therefore show the Estimated Demand and Difference maps. All other variables summarize existing data and therefore only show the first map."
 
 makeCensusPlot <- function(item, showLabels = FALSE){
-  if(item == 'Pop' | item == 'medFamInc' | item == 'perCapitaInc'){ #If the item is any of these, scale according to the domain becuz these are the variables that are not 0 to 1 range
+  if(item == 'Pop' | item == 'medFamInc' | item == 'perCapitaInc' | item == 'pop_density'){ #If the item is any of these, scale according to the domain becuz these are the variables that are not 0 to 1 range
     pal <- colorNumeric(palette = "plasma", domain = ri_pop$item, n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
+    rounding <- 0
   } else { #For all the 0 to 1 range percentage things, do one of these
     # pal <- colorNumeric(palette = "plasma", domain = ri_pop$item, n = 10) #This line scales the colors from the minimum to the maximum value for the selected variable
     pal <- colorNumeric(palette = "plasma", domain = 0:1, n = 10) #This line scales the colors from 0 to 1 for all variables, allowing us to see different info.
+    rounding <- 3
   }
   popupHTML <- sprintf( #Make a list of labels with HTML styling for each census tract
     "<strong>%s</strong><br/>variable = %g",
@@ -74,7 +77,7 @@ makeCensusPlot <- function(item, showLabels = FALSE){
   label = NULL
   labelOpts = NULL
   if(showLabels){
-    label = ~round(get(item), 3)
+    label = ~round(get(item), rounding)
     labelOpts = labelOptions(noHide = TRUE, direction = 'center', textOnly = TRUE)
   }
   censusPlot <- ri_pop %>% #Put this big ol map thing inside this div
@@ -133,6 +136,7 @@ ui <- fluidPage(
                    h3('Census Maps'),
                    
                    div(id = "Pop", leafletOutput("PopPlot"), br()),
+                   div(id = "pop_density", leafletOutput("pop_densityPlot"), br()),
                    div(id = "Male", leafletOutput("MalePlot"), br()),
                    div(id = "Female", leafletOutput("FemalePlot"), br()),
                    div(id = "White", leafletOutput("WhitePlot"), br()),
@@ -186,6 +190,7 @@ server <- function(input, output, session) {
   options(shiny.maxRequestSize = 30*1024^2) #Increase the max CSV upload size
   
   output$PopPlot <- renderLeaflet({makeCensusPlot("Pop", input$showLabels)}) #Render the output of makeCensusPlot(), at top of file, into each plot
+  output$pop_densityPlot <- renderLeaflet({makeCensusPlot("pop_density", input$showLabels)})
   output$MalePlot <- renderLeaflet({makeCensusPlot("Male", input$showLabels)})
   output$FemalePlot <- renderLeaflet({makeCensusPlot("Female", input$showLabels)})
   output$WhitePlot <- renderLeaflet({makeCensusPlot("White", input$showLabels)})
