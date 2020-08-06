@@ -194,6 +194,10 @@ data <- data %>%
   na.omit()
 
 
+############### RUN EVERYTHING UNTIL THIS LINE AT ONCE #######################
+
+############### RUN EVERYTHING BELOW THIS LINE LINE BY LINE ##################
+
 # ------- FIND CORRELATION BETWEEN VAIRABLES ---------
 # pairs(data[, c(3, 9, 10, 14:21)], lower.panel=panel.smooth, upper.panel=panel.cor)
 
@@ -203,7 +207,7 @@ data <- data %>%
 ## FIND HIGHEST INDICES FROM RESIDUAL AND UNDERSTAND WHERE THEY ARE COMING FROM
 
 # log0 = error, so added 1 to the count when taking the log
-# model <- lm(log(COUNT+1) ~ COLLDIST + log(DOWNDIST+1) + TOTJOBS + log(POP+1) + log(PERCAPITAINC+1) +
+# model <- lm(log(COUNT+1) ~ COLLDIST + log(DOWNDIST+1) + log(TOTJOBS+1) + POP + log(PERCAPITAINC+1) +
 #                     AUTO + PUBLIC + WALK + COLLEGE + POVERTY, data = data)
 # print(summary(model))
 # print(summary(model)$coefficient)
@@ -220,28 +224,28 @@ data <- data %>%
 # 
 # layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
 # plot(model)
-# 
-# 
+
+
 # ----------- MATCHING & PROPENSITY SCORES -----------
-## add new column of close or far from college value
-# matching_data <- data %>%
-#   mutate(NEARCOLLEGE = ifelse(NEARCOLLEGE, 1, 0)) %>%
-#   ungroup()
-# matching_data <- as.data.frame(matching_data)
-# 
-# ######## SHUFFLE #########
+# add new column of close or far from college value
+matching_data <- data %>%
+  mutate(NEARCOLLEGE = ifelse(NEARCOLLEGE, 1, 0)) %>%
+  ungroup()
+matching_data <- as.data.frame(matching_data)
+
+######## SHUFFLE #########
 # set.seed(42)
 # rows <- sample(nrow(matching_data))
 # matching_data <- matching_data[rows, ]
 # 
-# matching_data <- matching_data[1:10000, ] 
+# matching_data <- matching_data[1:10000, ]
 # str(matching_data)
-# 
-# 
-# # ------------------- PREPROCESSING ------------------
+
+
+# ------------------- PREPROCESSING ------------------
 # ## 1. Standardized Difference
 # treated <- (matching_data$NEARCOLLEGE==1)
-# cov <- matching_data[, c(15, 9, 16, 18, 22)]
+# cov <- matching_data[, c(10, 4, 11, 13, 17)]
 # std.diff <- apply(cov, 2, function(x) 100*(mean(x[treated]) - mean(x[!treated])) / (sqrt(0.5*(var(x[treated]) + var(x[!treated])))))
 # abs(std.diff)
 # 
@@ -250,14 +254,15 @@ data <- data %>%
 # 
 # xBalance(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
 #          report = c("chisquare.test"))
-# 
-# 
-# # ----------- PROPENSITY SCORE ESTIMATION -------------
-# ps <- glm(NEARCOLLEGE ~ log(TOTJOBS+1) + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
-#           family = binomial())
-# summary(ps)
-# 
-# ##################
+
+
+# ----------- PROPENSITY SCORE ESTIMATION -------------
+ps <- glm(NEARCOLLEGE ~ log(TOTJOBS+1) + log(DOWNDIST+1) + POP + log(PERCAPITAINC+1) + POVERTY, data = matching_data,
+          family = binomial())
+summary(ps)
+
+
+################## Area Under the Curve ##################
 # glm.probs = predict(ps, type="response")
 # glm.odds = exp(predict(ps, type="link"))
 # glm.pred = (glm.probs > 0.5)
@@ -267,27 +272,53 @@ data <- data %>%
 # roc.m = roc(matching_data$NEARCOLLEGE, glm.probs)
 # auc(roc.m)
 # ggroc(data=roc.m)
-# ##################
+##########################################################
+
+
+matching_data$psvalue <- predict(ps, type = "response")
+library("Hmisc")
+histbackback(split(matching_data$psvalue, matching_data$NEARCOLLEGE), main = "Propensity Score Before Matching",
+             xlab=c("control", "treatment"))
+
+
+m.nn <- matchit(NEARCOLLEGE ~ log(TOTJOBS+1) + log(DOWNDIST+1) + POP + log(PERCAPITAINC+1) + POVERTY, data = matching_data,
+                method = "nearest", ratio = 1)
+summary(m.nn)
+
+match.data = match.data(m.nn)
+plot(m.nn, type = "jitter")
+
+
+histbackback(split(match.data$psvalue, match.data$NEARCOLLEGE), main = "Propensity Score After Matching",
+             xlab = c("control", "treatment"))
+
+# ---------- outcomes
+matches <- data.frame(m.nn$match.matrix)
+group1 <- match(row.names(matches), row.names(match.data))
+group2 <- match(matches$X1, row.names(match.data))
+yT <- match.data$COUNT[group1]
+yC <- match.data$COUNT[group2]
+matched.cases <- cbind(matches, yT, yC)
+t.test(matched.cases$yT, matched.cases$yC, paired = TRUE)
+
+
+# --------------------- IMPLEMENT NEAREST NEIGHBORS MATCHING -------------------
+# means <- matching_data %>%
+#          summarise_if(is.numeric, mean)
 # 
-# matching_data$psvalue <- predict(ps, type = "response")
-# library("Hmisc")
-# histbackback(split(matching_data$psvalue, matching_data$NEARCOLLEGE), main = "Propensity Score Before Matching", 
-#              xlab=c("control", "treatment"))
-# 
-# 
-# ## conventional matching using Mahalanobis distance - DOESNT WORK
-# # m.mahal <- matchit(NEARCOLLEGE ~ TOTJOBS + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
-# #                    mahvars = c("TOTJOBS", "DOWNDIST", "POP", "PERCAPITAINC", "POVERTY"),
-# #                    caliper = 0.25, calclosest = TRUE, replace = TRUE, distance = "mahalanobis")
-# # summary(m.mahal)
-# 
-# m.nn <- matchit(NEARCOLLEGE ~ log(TOTJOBS+1) + DOWNDIST + POP + PERCAPITAINC + POVERTY, data = matching_data,
-#                 method = "nearest", replace = TRUE, ratio = 2)
-# summary(m.nn)
-# 
-# match.data = match.data(m.nn)
-# plot(m.nn, type = "jitter")
-# 
-# 
-# histbackback(split(match.data$psvalue, match.data$NEARCOLLEGE), main = "Propensity score After Matching", 
-#              xlab = c("control", "treatment"))
+# # sub_mean <- function(df) {
+# #   for (i in 3:dim(means)[2]) {
+# #     apply(df, 1, function(x) {x-means[i]})
+# #   }
+# # }
+# # matching_data <- matching_data %>%
+# #                  sub_mean()
+# # apply(matching_data, 1, function(x) {(x-colMeans(x))/std(x)})
+# dummy_data <- matching_data
+# dummy_data$NEARCOLLEGE <- as.numeric(dummy_data$NEARCOLLEGE)
+# dummy_data$GEOID <- as.numeric(dummy_data$GEOID)
+# dummy_data$ROUNDED_GEOID <- as.numeric(dummy_data$ROUNDED_GEOID)
+# means <- apply(dummy_data, 1, mean)
+# dummy_data <- sweep(dummy_data, 1, means, "-")
+# dummy_data <- apply(dummy_data, 1, function(x) {x/std(x)})
+# dummy_data <- t(dummy_data)
