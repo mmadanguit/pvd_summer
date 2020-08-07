@@ -219,7 +219,7 @@ ui <- fluidPage(
                tags$li("The selector called \"Scooter Variable\" controls what variable is being shown in the scooter usage and modeling graphs"),
                tags$ul(
                  tags$li("For mean and median trips/day, all 3 graphs are shown. For standard deviation trips/day, the difference map is not shown because looking at the difference between the model and the actual data is not informative. For all other variables, the model does not change these variables and therefore only the scooter variable map is shown"),
-               )
+               ),
                tags$li("The checkboxes called \"Census Variables\" control what census variable plots are shown. If no variables are selected from this, the census map column is hidden to show the scooter map column in a larger space.")
              )
     )
