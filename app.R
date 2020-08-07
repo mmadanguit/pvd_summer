@@ -107,81 +107,122 @@ makeCensusPlot <- function(item, showLabels = FALSE){
 
 ui <- fluidPage(
   useShinyjs(),
-  column(4, style = "padding: 5px; width: 30%", #Forcibly set width so the overall width stays the same when changing the scooterCol width
-         wellPanel(style = "overflow-y:scroll; height: 95vh", #Independently scroll this column
-                   checkboxInput("showLabels", "Show Labels on Maps", value = TRUE),
-                   fileInput("demandTRACT", "Choose demandTRACT.csv", #Two CSV only file inputs
-                             multiple = FALSE,
-                             accept = c("text/csv", "text/comma-separated-values")),
-                   fileInput("demandLatLng", "Choose demandLatLng.csv",
-                             multiple = FALSE,
-                             accept = c("text/csv", "text/comma-separated-values")),
-                   dateRangeInput("availabilityDateRange", "Date Range to Include", #Date range picker for filtering
-                                  start = "2019-5-01", #Default start date
-                                  end = "2019-9-30", #Default end date
-                                  min = "2018-11-01", #Earliest allowed start date
-                                  max = "2019-10-31" #Latest allowed end date
-                   ),
-                   checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE), #Weekend and weekday filtering checkboxes
-                   checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
-                   radioButtons("tractOrLatLng", "Tract or Latitude/Longitude?", choices = c("Display by Tract" = "tract", "Display by Latitude and Longitude" = "latLng")), #Tract/latlng picker
-                   radioButtons("zCol", "Scooter Variable", choices = scooterVarChoices), #Scooter variables
-                   # bsTooltip("zCol", zColTooltipText), #Explainer for above zcol picker
-                   checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = c()), #Defines which checkboxes to use
-                   p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul") #Hi!
-         )
-  ),
-  column(4, id = "censusCol", style = "padding: 5px; width: 35%", #Forcibly set width so the overall width stays the same when changing the scooterCol width
-         wellPanel(style = "overflow-y:scroll; height: 95vh", #Independently scroll this column
-                   h3('Census Maps'),
-                   
-                   div(id = "Pop", leafletOutput("PopPlot"), br()),
-                   div(id = "pop_density", leafletOutput("pop_densityPlot"), br()),
-                   div(id = "Male", leafletOutput("MalePlot"), br()),
-                   div(id = "Female", leafletOutput("FemalePlot"), br()),
-                   div(id = "White", leafletOutput("WhitePlot"), br()),
-                   div(id = "Black", leafletOutput("BlackPlot"), br()),
-                   div(id = "Other", leafletOutput("OtherPlot"), br()),
-                   div(id = "Hispanic", leafletOutput("HispanicPlot"), br()),
-                   div(id = "Citizen", leafletOutput("CitizenPlot"), br()),
-                   div(id = "NotCitizen", leafletOutput("NotCitizenPlot"), br()),
-                   div(id = "engOnly", leafletOutput("engOnlyPlot"), br()),
-                   div(id = "spanish", leafletOutput("spanishPlot"), br()),
-                   div(id = "spanishStrE", leafletOutput("spanishStrEPlot"), br()),
-                   div(id = "spanishWeakE", leafletOutput("spanishWeakEPlot"), br()),
-                   div(id = "medFamInc", leafletOutput("medFamIncPlot"), br()),
-                   div(id = "perCapitaInc", leafletOutput("perCapitaIncPlot"), br()),
-                   div(id = "Poverty", leafletOutput("PovertyPlot"), br()),
-                   div(id = "abovePoverty", leafletOutput("abovePovertyPlot"), br()),
-                   div(id = "InternetAccess", leafletOutput("InternetAccessPlot"), br()),
-                   div(id = "noInternetAccess", leafletOutput("noInternetAccessPlot"), br()),
-                   div(id = "Disability", leafletOutput("DisabilityPlot"), br()),
-                   div(id = "NoDisability", leafletOutput("NoDisabilityPlot"), br()),
-                   div(id = "auto", leafletOutput("autoPlot"), br()),
-                   div(id = "public", leafletOutput("publicPlot"), br()),
-                   div(id = "walk", leafletOutput("walkPlot"), br()),
-                   div(id = "other", leafletOutput("otherPlot"), br()),
-                   div(id = "college", leafletOutput("collegePlot"), br()),
-         )
-  ),
-  column(4, id = "scooterCol", style = "padding: 5px; width: 35%", #Forcibly set width so the overall width stays the same when changing the scooterCol width
-         wellPanel(style = "overflow-y:scroll; height: 95vh", #Independently scroll this column
-                   div(id = "pickupMapDiv",
-                       h3("Scooter Variable Map"),
-                       leafletOutput("pickupMapPlot"), #This is where the map will go
-                       hr(),
-                   ),
-                   div(id = "demandMapDiv",
-                       h3("Estimated Demand Map"),
-                       leafletOutput("demandMapPlot"), #This is where the map will go
-                       hr(),
-                   ),
-                   div(id = "differenceMapDiv",
-                       h3("Difference Map"),
-                       leafletOutput("differenceMapPlot"), #This is where the map will go
-                       hr(),
-                   )
-         )
+  tabsetPanel(
+    tabPanel("Maps",
+      column(4, style = "padding: 5px; width: 30%", #Forcibly set width so the overall width stays the same when changing the scooterCol width
+             wellPanel(style = "overflow-y:scroll; height: 92vh", #Independently scroll this column
+                       checkboxInput("showLabels", "Show Labels on Maps", value = TRUE),
+                       fileInput("demandTRACT", "Choose demandTRACT.csv", #Two CSV only file inputs
+                                 multiple = FALSE,
+                                 accept = c("text/csv", "text/comma-separated-values")),
+                       fileInput("demandLatLng", "Choose demandLatLng.csv",
+                                 multiple = FALSE,
+                                 accept = c("text/csv", "text/comma-separated-values")),
+                       dateRangeInput("availabilityDateRange", "Date Range to Include", #Date range picker for filtering
+                                      start = "2019-5-01", #Default start date
+                                      end = "2019-9-30", #Default end date
+                                      min = "2018-11-01", #Earliest allowed start date
+                                      max = "2019-10-31" #Latest allowed end date
+                       ),
+                       checkboxInput("includeWeekdays", "Include Weekdays", value = TRUE), #Weekend and weekday filtering checkboxes
+                       checkboxInput("includeWeekends", "Include Weekends", value = TRUE),
+                       radioButtons("tractOrLatLng", "Tract or Latitude/Longitude?", choices = c("Display by Tract" = "tract", "Display by Latitude and Longitude" = "latLng")), #Tract/latlng picker
+                       radioButtons("zCol", "Scooter Variable", choices = scooterVarChoices), #Scooter variables
+                       # bsTooltip("zCol", zColTooltipText), #Explainer for above zcol picker
+                       checkboxGroupInput("varToPlot", "Census Variables:", choices = censusVarChoices, selected = c()), #Defines which checkboxes to use
+                       p("Built by Nolan Flynn, Marion Madanguit, Hyunkyung Rho, Maeve Stites, and Alice Paul") #Hi!
+             )
+      ),
+      column(4, id = "censusCol", style = "padding: 5px; width: 35%", #Forcibly set width so the overall width stays the same when changing the scooterCol width
+             wellPanel(style = "overflow-y:scroll; height: 92vh", #Independently scroll this column
+                       h3('Census Maps'),
+                       
+                       div(id = "Pop", leafletOutput("PopPlot"), br()),
+                       div(id = "pop_density", leafletOutput("pop_densityPlot"), br()),
+                       div(id = "Male", leafletOutput("MalePlot"), br()),
+                       div(id = "Female", leafletOutput("FemalePlot"), br()),
+                       div(id = "White", leafletOutput("WhitePlot"), br()),
+                       div(id = "Black", leafletOutput("BlackPlot"), br()),
+                       div(id = "Other", leafletOutput("OtherPlot"), br()),
+                       div(id = "Hispanic", leafletOutput("HispanicPlot"), br()),
+                       div(id = "Citizen", leafletOutput("CitizenPlot"), br()),
+                       div(id = "NotCitizen", leafletOutput("NotCitizenPlot"), br()),
+                       div(id = "engOnly", leafletOutput("engOnlyPlot"), br()),
+                       div(id = "spanish", leafletOutput("spanishPlot"), br()),
+                       div(id = "spanishStrE", leafletOutput("spanishStrEPlot"), br()),
+                       div(id = "spanishWeakE", leafletOutput("spanishWeakEPlot"), br()),
+                       div(id = "medFamInc", leafletOutput("medFamIncPlot"), br()),
+                       div(id = "perCapitaInc", leafletOutput("perCapitaIncPlot"), br()),
+                       div(id = "Poverty", leafletOutput("PovertyPlot"), br()),
+                       div(id = "abovePoverty", leafletOutput("abovePovertyPlot"), br()),
+                       div(id = "InternetAccess", leafletOutput("InternetAccessPlot"), br()),
+                       div(id = "noInternetAccess", leafletOutput("noInternetAccessPlot"), br()),
+                       div(id = "Disability", leafletOutput("DisabilityPlot"), br()),
+                       div(id = "NoDisability", leafletOutput("NoDisabilityPlot"), br()),
+                       div(id = "auto", leafletOutput("autoPlot"), br()),
+                       div(id = "public", leafletOutput("publicPlot"), br()),
+                       div(id = "walk", leafletOutput("walkPlot"), br()),
+                       div(id = "other", leafletOutput("otherPlot"), br()),
+                       div(id = "college", leafletOutput("collegePlot"), br()),
+             )
+      ),
+      column(4, id = "scooterCol", style = "padding: 5px; width: 35%", #Forcibly set width so the overall width stays the same when changing the scooterCol width
+             wellPanel(style = "overflow-y:scroll; height: 92vh", #Independently scroll this column
+                       div(id = "pickupMapDiv",
+                           h3("Scooter Variable Map"),
+                           leafletOutput("pickupMapPlot"), #This is where the map will go
+                           hr(),
+                       ),
+                       div(id = "demandMapDiv",
+                           h3("Estimated Demand Map"),
+                           leafletOutput("demandMapPlot"), #This is where the map will go
+                           hr(),
+                       ),
+                       div(id = "differenceMapDiv",
+                           h3("Difference Map"),
+                           leafletOutput("differenceMapPlot"), #This is where the map will go
+                           hr(),
+                       )
+             )
+      )
+    ),
+    tabPanel("Documentation",
+             h3("Demand File Columns"),
+             tags$ul(
+               tags$li("\"\": A column of numbers because of how we exported the file"),
+               tags$li("TRACT: What tract number this data summary row is for"),
+               tags$li("DATE: What date this data summary row is for"),
+               tags$li("AVAILPCT: Percent of the day that at least one scooter was available"),
+               tags$li("COUNTTIME: Total amount of time a scooter was available, in days"),
+               tags$li("CDSUM: Cumulative distribution of scooters. Portion of daily pickups that happened within this tract"),
+               tags$li("TRIPS: The number of trips departing from this tract on this day"),
+               tags$li("DAY: The day of the week corresponding to DATE"),
+               tags$li("ADJTRIPS: The expected number of trips departing from this tract on this day, according to our model"),
+             ),
+             p("For demandLatLng, all columns are the same, except LAT and LNG replace TRACT"),
+             h3("Explanation of graphs"),
+             tags$ul(
+               tags$li("In the middle column, graphs showing the census variables selected appear"),
+               tags$li("In the right column, graphs showing a summary of scooter usage and our model are shown"),
+               tags$ul(
+                 tags$li("The \"Scooter Variable Map\" is always shown and always displays the summary of the raw data with no modeling changes."),
+                 tags$li("The \"Estimated Demand Map\" shows a summary of what our model would expect demand to look like."), 
+                 tags$li("The \"Difference Map\" shows the difference between the estimated demand and the actual usage."),
+                 tags$li("The \"Scooter Variable Map\" and the \"Estimated Demand Map\" show colors using a logarithmic color scale, which allows us to see more fine variations in the smaller numbers while compressing variation in the larger numbers. The difference map uses a linear color scale."),
+               )
+             ),
+             h3("Explanation of App Inputs"),
+             tags$ul(
+               tags$li("The checkbox called \"Show Labels on Maps\" shows the number that map is showing (which is also what controls the color) over each tract or latitude and longitude"),
+               tags$li("The date picker called \"Date Range to Include\" filters what days are being included in the scooter usage and modeling summary graphs shown in the right column"),
+               tags$li("The selector called \"Tract or Latitude/Longitude\" selects whether the scooter usage and modeling graphs are displayed as tracts or latitude/longitude rectangles"),
+               tags$li("The selector called \"Scooter Variable\" controls what variable is being shown in the scooter usage and modeling graphs"),
+               tags$ul(
+                 tags$li("For mean and median trips/day, all 3 graphs are shown. For standard deviation trips/day, the difference map is not shown because looking at the difference between the model and the actual data is not informative. For all other variables, the model does not change these variables and therefore only the scooter variable map is shown"),
+               )
+               tags$li("The checkboxes called \"Census Variables\" control what census variable plots are shown. If no variables are selected from this, the census map column is hidden to show the scooter map column in a larger space.")
+             )
+    )
   )
 )
 
