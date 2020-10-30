@@ -1,0 +1,12 @@
+name: pvd_scootershare
+title: pvd_scootershare
+username:
+account: alicejpaul
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2637438
+bundleId: 3469606
+url: https://alicejpaul.shinyapps.io/pvd_scootershare/
+when: 1596467935.35068
+asMultiple: FALSE
+asStatic: FALSE
